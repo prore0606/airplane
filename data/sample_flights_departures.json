@@ -1,0 +1,82 @@
+{
+  "_comment": "인천공항 공공데이터 API 출발편 샘플 응답",
+  "_source": "https://www.data.go.kr - 한국공항공사 인천국제공항 운항정보",
+  "response": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL SERVICE"
+    },
+    "body": {
+      "numOfRows": 5,
+      "pageNo": 1,
+      "totalCount": 312,
+      "items": [
+        {
+          "flightId": "KE723",
+          "airline": "대한항공",
+          "airlineCode": "KE",
+          "airportCode": "NRT",
+          "airport": "도쿄(나리타)",
+          "scheduleDatetime": "20260403134000",
+          "estimatedDatetime": "20260403134000",
+          "terminalId": "T1",
+          "gateNumber": "G23",
+          "remark": "정시출발",
+          "typeOfFlight": "I"
+        },
+        {
+          "flightId": "OZ101",
+          "airline": "아시아나항공",
+          "airlineCode": "OZ",
+          "airportCode": "HND",
+          "airport": "도쿄(하네다)",
+          "scheduleDatetime": "20260403150000",
+          "estimatedDatetime": "20260403151500",
+          "terminalId": "T1",
+          "gateNumber": "B34",
+          "remark": "지연출발",
+          "typeOfFlight": "I"
+        },
+        {
+          "flightId": "7C101",
+          "airline": "제주항공",
+          "airlineCode": "7C",
+          "airportCode": "OSA",
+          "airport": "오사카(간사이)",
+          "scheduleDatetime": "20260403162000",
+          "estimatedDatetime": "20260403162000",
+          "terminalId": "T1",
+          "gateNumber": "A14",
+          "remark": "탑승중",
+          "typeOfFlight": "I"
+        },
+        {
+          "flightId": "LJ201",
+          "airline": "진에어",
+          "airlineCode": "LJ",
+          "airportCode": "BKK",
+          "airport": "방콕(수완나품)",
+          "scheduleDatetime": "20260403173000",
+          "estimatedDatetime": "20260403173000",
+          "terminalId": "T1",
+          "gateNumber": "C18",
+          "remark": "출발준비",
+          "typeOfFlight": "I"
+        },
+        {
+          "flightId": "TW501",
+          "airline": "티웨이항공",
+          "airlineCode": "TW",
+          "airportCode": "TPE",
+          "airport": "타이페이(타오위안)",
+          "scheduleDatetime": "20260403185000",
+          "estimatedDatetime": "20260403185000",
+          "terminalId": "T1",
+          "gateNumber": "D07",
+          "remark": "출발예정",
+          "typeOfFlight": "I"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "_comment": "항공권 OCR 인식 샘플 결과 (카카오 클로바 / Google Vision 기반)",
+  "raw_text": "KOREAN AIR BOARDING PASS KE 723 ICN NRT 03APR2026 GATE G23 SEAT 24A TERMINAL 1 DEPARTURE 13:40",
+  "parsed": {
+    "airline": "대한항공",
+    "airlineCode": "KE",
+    "flightNumber": "KE723",
+    "departure": {
+      "airportCode": "ICN",
+      "airportName": "인천국제공항",
+      "terminal": "T1",
+      "gate": "G23",
+      "scheduledTime": "2026-04-03T13:40:00+09:00"
+    },
+    "arrival": {
+      "airportCode": "NRT",
+      "airportName": "도쿄 나리타",
+      "scheduledTime": "2026-04-03T15:20:00+09:00"
+    },
+    "passenger": {
+      "seat": "24A",
+      "class": "Y"
+    }
+  },
+  "confidence": 0.97
+}
