@@ -1,16 +1,30 @@
+import { useState } from 'react'
+import BottomTab, { type TabId } from './components/layout/BottomTab'
+import HomePage from './pages/HomePage'
+import FlightPage from './pages/FlightPage'
+import MapPage from './pages/MapPage'
+import CharacterPage from './pages/CharacterPage'
+import MyPage from './pages/MyPage'
 import './App.css'
 
+const PAGES: Record<TabId, React.ReactElement> = {
+  home:      <HomePage />,
+  flight:    <FlightPage />,
+  map:       <MapPage />,
+  character: <CharacterPage />,
+  my:        <MyPage />,
+}
+
 export default function App() {
+  const [tab, setTab] = useState<TabId>('home')
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-2xl bg-brand-green flex items-center justify-center text-2xl text-white mx-auto mb-4">
-          ✈
-        </div>
-        <h1 className="font-display font-black text-3xl text-brand-black tracking-tight">
-          AI 출국<span className="text-brand-green">메이트</span>
-        </h1>
-        <p className="text-sm text-brand-muted mt-2">초기 세팅 완료 · 개발 시작 준비됨</p>
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="relative w-full max-w-md min-h-screen bg-brand-surface flex flex-col shadow-xl">
+        <main className="flex-1 overflow-hidden">
+          {PAGES[tab]}
+        </main>
+        <BottomTab active={tab} onChange={setTab} />
       </div>
     </div>
   )
