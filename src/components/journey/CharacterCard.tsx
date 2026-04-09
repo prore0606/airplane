@@ -14,15 +14,15 @@ export default function CharacterCard({ stage, flight }: Props) {
   return (
     <div className="bg-white border border-brand-border rounded-hero overflow-hidden">
       {/* 캐릭터 메인 영역 */}
-      <div className="flex flex-col items-center justify-center py-10 bg-gradient-to-b from-brand-pale to-white">
+      <div className="flex flex-col items-center justify-center pt-6 pb-2 bg-gradient-to-b from-brand-pale to-white">
         {charImg ? (
           <img
             src={charImg}
             alt={STAGE_LABEL[stage]}
-            className="w-52 h-52 object-contain drop-shadow-lg"
+            className="w-72 h-72 object-contain drop-shadow-lg"
           />
         ) : (
-          <div className="w-48 h-48 rounded-full bg-white border-2 border-dashed border-brand-mid flex items-center justify-center text-7xl">
+          <div className="w-72 h-72 flex items-center justify-center text-9xl">
             ✈️
           </div>
         )}
