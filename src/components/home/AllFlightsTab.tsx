@@ -8,16 +8,41 @@ interface Props {
   onRefetch: () => void
 }
 
-export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch }: Props) {
-  const [search, setSearch] = useState('')
+type Terminal = 'all' | 'T1' | 'T2'
+type TimeSlot  = 'all' | 'dawn' | 'morning' | 'afternoon' | 'evening'
 
-  const filtered = search.trim()
-    ? flights.filter((f) =>
-        f.flightId.toLowerCase().includes(search.toLowerCase()) ||
-        f.airportCode.toLowerCase().includes(search.toLowerCase()) ||
-        f.airline.includes(search)
-      )
-    : flights
+const TIME_SLOTS: { id: TimeSlot; label: string; range: [number, number] }[] = [
+  { id: 'all',       label: '전체',       range: [0,  24] },
+  { id: 'dawn',      label: '새벽 ~06시', range: [0,   6] },
+  { id: 'morning',   label: '오전 06~12', range: [6,  12] },
+  { id: 'afternoon', label: '오후 12~18', range: [12, 18] },
+  { id: 'evening',   label: '저녁 18~',  range: [18, 24] },
+]
+
+function getHour(raw: string) {
+  return parseInt(raw.slice(8, 10), 10)
+}
+
+export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch }: Props) {
+  const [search,   setSearch]   = useState('')
+  const [terminal, setTerminal] = useState<Terminal>('all')
+  const [timeSlot, setTimeSlot] = useState<TimeSlot>('all')
+
+  const slot = TIME_SLOTS.find((s) => s.id === timeSlot)!
+
+  const filtered = flights.filter((f) => {
+    const hour = getHour(f.scheduleDatetime)
+    const inTime = timeSlot === 'all' || (hour >= slot.range[0] && hour < slot.range[1])
+    const inTerminal = terminal === 'all' || f.terminalId === terminal
+    const q = search.trim().toLowerCase()
+    const inSearch = !q || (
+      f.flightId.toLowerCase().includes(q) ||
+      f.airportCode.toLowerCase().includes(q) ||
+      f.airport.includes(search.trim()) ||
+      f.airline.includes(search.trim())
+    )
+    return inTime && inTerminal && inSearch
+  })
 
   const timeLabel = lastUpdated
     ? `${lastUpdated.getHours().toString().padStart(2, '0')}:${lastUpdated.getMinutes().toString().padStart(2, '0')} 기준`
@@ -30,7 +55,7 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="편명·목적지·항공사 검색"
+          placeholder="편명 · 목적지 · 항공사 검색"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 bg-white border border-brand-border rounded-xl px-4 py-2.5 text-sm text-brand-black placeholder:text-brand-muted focus:outline-none focus:border-brand-green"
@@ -38,15 +63,49 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
         <button
           onClick={onRefetch}
           disabled={loading}
-          className="text-xs text-brand-green font-semibold bg-white border border-brand-border rounded-xl px-3 py-2.5 disabled:opacity-40 whitespace-nowrap"
+          className="shrink-0 text-xs text-brand-green font-semibold bg-white border border-brand-border rounded-xl px-3 py-2.5 disabled:opacity-40 hover:border-brand-green transition-colors"
         >
           {loading ? '조회 중...' : '🔄 새로고침'}
         </button>
       </div>
 
-      {/* 조회 시각 + 편수 */}
+      {/* 터미널 필터 */}
+      <div className="flex items-center gap-2">
+        {(['all', 'T1', 'T2'] as Terminal[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTerminal(t)}
+            className={`px-4 py-1.5 rounded-pill text-xs font-semibold transition-colors ${
+              terminal === t
+                ? 'bg-brand-green text-white'
+                : 'bg-white border border-brand-border text-brand-muted hover:border-brand-green hover:text-brand-black'
+            }`}
+          >
+            {t === 'all' ? '전체 터미널' : t}
+          </button>
+        ))}
+      </div>
+
+      {/* 시간대 필터 */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {TIME_SLOTS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setTimeSlot(s.id)}
+            className={`px-3 py-1.5 rounded-pill text-xs font-semibold transition-colors ${
+              timeSlot === s.id
+                ? 'bg-brand-black text-white'
+                : 'bg-white border border-brand-border text-brand-muted hover:border-brand-green hover:text-brand-black'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 결과 수 + 조회 시각 */}
       <div className="flex items-center justify-between text-[11px] text-brand-muted">
-        <span>{filtered.length}편 표시 중</span>
+        <span>{filtered.length}편</span>
         {timeLabel && <span>{timeLabel}</span>}
       </div>
 
@@ -54,43 +113,53 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
       {loading && flights.length === 0 && (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white border border-brand-border rounded-xl h-16 animate-pulse" />
+            <div key={i} className="bg-white border border-brand-border rounded-xl h-[72px] animate-pulse" />
           ))}
         </div>
       )}
 
-      {/* 항공편 목록 */}
+      {/* 검색 결과 없음 */}
       {!loading && filtered.length === 0 && (
-        <p className="text-center text-sm text-brand-muted py-8">검색 결과가 없습니다</p>
+        <div className="text-center py-12">
+          <p className="text-2xl mb-2">🔍</p>
+          <p className="text-sm text-brand-muted">해당하는 항공편이 없습니다</p>
+        </div>
       )}
 
+      {/* 항공편 목록 */}
       <div className="space-y-2">
         {filtered.map((f) => {
-          const sched = parseDatetime(f.scheduleDatetime)
-          const est = parseDatetime(f.estimatedDatetime)
+          const sched   = parseDatetime(f.scheduleDatetime)
+          const est     = parseDatetime(f.estimatedDatetime)
           const delayed = f.scheduleDatetime !== f.estimatedDatetime
           const badgeCls = remarkColor(f.remark)
 
           return (
-            <div key={f.flightId}
-              className="bg-white border border-brand-border rounded-xl px-4 py-3 flex items-center justify-between hover:border-brand-green transition-colors cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-display font-black text-sm text-brand-black">{f.flightId}</span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-pill ${badgeCls}`}>{f.remark}</span>
-                  </div>
-                  <span className="text-xs text-brand-muted">{f.airportCode} · {f.airline}</span>
+            <div
+              key={f.flightId}
+              className="bg-white border border-brand-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-brand-green hover:shadow-sm transition-all cursor-pointer"
+            >
+              {/* 왼쪽: 편명 + 항공사 + 목적지 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-display font-black text-sm text-brand-black">{f.flightId}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-pill ${badgeCls}`}>{f.remark}</span>
                 </div>
+                <p className="text-xs text-brand-muted truncate">
+                  {f.airline} · {f.airport} <span className="text-brand-border">|</span> {f.terminalId} · {f.gateNumber}게이트
+                </p>
               </div>
-              <div className="text-right">
-                <div className="flex items-baseline gap-1.5 justify-end">
-                  <span className={`text-sm font-bold ${delayed ? 'text-brand-muted line-through text-xs' : 'text-brand-black'}`}>
-                    {sched.time}
-                  </span>
-                  {delayed && <span className="text-sm font-bold text-brand-red">{est.time}</span>}
-                </div>
-                <span className="text-xs text-brand-muted">{f.gateNumber}게이트</span>
+
+              {/* 오른쪽: 출발 시간 */}
+              <div className="text-right shrink-0 ml-4">
+                {delayed ? (
+                  <>
+                    <p className="text-xs text-brand-muted line-through">{sched.time}</p>
+                    <p className="text-base font-bold text-brand-red">{est.time}</p>
+                  </>
+                ) : (
+                  <p className="text-base font-bold text-brand-black">{sched.time}</p>
+                )}
               </div>
             </div>
           )
