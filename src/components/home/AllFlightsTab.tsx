@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { parseDatetime, remarkColor, type Flight } from '../../services/flightApi'
 
 interface Props {
@@ -19,8 +19,9 @@ const TIME_SLOTS: { id: TimeSlot; label: string; range: [number, number] }[] = [
   { id: 'evening',   label: '저녁 18~',  range: [18, 24] },
 ]
 
+const PAGE_SIZE = 20
+
 function getHour(raw: string) {
-  // HHMM("0830") 또는 YYYYMMDDHHMMSS("20260409083000") 모두 처리
   if (raw.length <= 4) return parseInt(raw.slice(0, 2), 10)
   return parseInt(raw.slice(8, 10), 10)
 }
@@ -29,15 +30,16 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
   const [search,   setSearch]   = useState('')
   const [terminal, setTerminal] = useState<Terminal>('all')
   const [timeSlot, setTimeSlot] = useState<TimeSlot>('all')
+  const [page,     setPage]     = useState(1)
 
   const slot = TIME_SLOTS.find((s) => s.id === timeSlot)!
 
   const filtered = flights.filter((f) => {
     const hour = getHour(f.scheduleDatetime)
-    const inTime = timeSlot === 'all' || (hour >= slot.range[0] && hour < slot.range[1])
+    const inTime     = timeSlot === 'all' || (hour >= slot.range[0] && hour < slot.range[1])
     const inTerminal = terminal === 'all' || f.terminalId === terminal
-    const q = search.trim().toLowerCase()
-    const inSearch = !q || (
+    const q          = search.trim().toLowerCase()
+    const inSearch   = !q || (
       f.flightId.toLowerCase().includes(q) ||
       f.airportCode.toLowerCase().includes(q) ||
       f.airport.includes(search.trim()) ||
@@ -45,6 +47,12 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
     )
     return inTime && inTerminal && inSearch
   })
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  // 필터 변경 시 1페이지로 리셋
+  useEffect(() => { setPage(1) }, [search, terminal, timeSlot])
 
   const timeLabel = lastUpdated
     ? `${lastUpdated.getHours().toString().padStart(2, '0')}:${lastUpdated.getMinutes().toString().padStart(2, '0')} 기준`
@@ -105,17 +113,17 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
         ))}
       </div>
 
-      {/* 결과 수 + 조회 시각 */}
+      {/* 결과 수 + 페이지 정보 + 조회 시각 */}
       <div className="flex items-center justify-between text-[11px] text-brand-muted">
-        <span>{filtered.length}편</span>
+        <span>총 {filtered.length}편 · {page}/{totalPages} 페이지</span>
         {timeLabel && <span>{timeLabel}</span>}
       </div>
 
       {/* 로딩 스켈레톤 */}
       {loading && flights.length === 0 && (
         <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white border border-brand-border rounded-xl h-[72px] animate-pulse" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white border border-brand-border rounded-xl h-[68px] animate-pulse" />
           ))}
         </div>
       )}
@@ -130,18 +138,17 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
 
       {/* 항공편 목록 */}
       <div className="space-y-2">
-        {filtered.map((f) => {
-          const sched   = parseDatetime(f.scheduleDatetime)
-          const est     = parseDatetime(f.estimatedDatetime)
-          const delayed = f.scheduleDatetime !== f.estimatedDatetime
+        {paginated.map((f) => {
+          const sched    = parseDatetime(f.scheduleDatetime)
+          const est      = parseDatetime(f.estimatedDatetime)
+          const delayed  = f.scheduleDatetime !== f.estimatedDatetime && f.estimatedDatetime !== ''
           const badgeCls = remarkColor(f.remark)
 
           return (
             <div
-              key={f.flightId}
+              key={`${f.flightId}-${f.scheduleDatetime}`}
               className="bg-white border border-brand-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-brand-green hover:shadow-sm transition-all cursor-pointer"
             >
-              {/* 왼쪽: 편명 + 항공사 + 목적지 */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-display font-black text-sm text-brand-black">{f.flightId}</span>
@@ -151,8 +158,6 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
                   {f.airline} · {f.airport} <span className="text-brand-border">|</span> {f.terminalId} · {f.gateNumber}게이트
                 </p>
               </div>
-
-              {/* 오른쪽: 출발 시간 */}
               <div className="text-right shrink-0 ml-4">
                 {delayed ? (
                   <>
@@ -167,6 +172,66 @@ export default function AllFlightsTab({ flights, loading, lastUpdated, onRefetch
           )
         })}
       </div>
+
+      {/* 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1 pt-2">
+          <button
+            onClick={() => setPage(1)}
+            disabled={page === 1}
+            className="w-8 h-8 rounded-lg text-xs text-brand-muted disabled:opacity-30 hover:bg-brand-surface transition-colors"
+          >
+            «
+          </button>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="w-8 h-8 rounded-lg text-xs text-brand-muted disabled:opacity-30 hover:bg-brand-surface transition-colors"
+          >
+            ‹
+          </button>
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+              if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...')
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, i) =>
+              p === '...' ? (
+                <span key={`dots-${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-brand-muted">…</span>
+              ) : (
+                <button
+                  key={p}
+                  onClick={() => setPage(p as number)}
+                  className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                    page === p
+                      ? 'bg-brand-green text-white'
+                      : 'text-brand-muted hover:bg-brand-surface'
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="w-8 h-8 rounded-lg text-xs text-brand-muted disabled:opacity-30 hover:bg-brand-surface transition-colors"
+          >
+            ›
+          </button>
+          <button
+            onClick={() => setPage(totalPages)}
+            disabled={page === totalPages}
+            className="w-8 h-8 rounded-lg text-xs text-brand-muted disabled:opacity-30 hover:bg-brand-surface transition-colors"
+          >
+            »
+          </button>
+        </div>
+      )}
 
     </div>
   )
