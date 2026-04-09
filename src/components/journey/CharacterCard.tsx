@@ -31,16 +31,17 @@ export default function CharacterCard({ stage, flight }: Props) {
   return (
     <div className="bg-white rounded-hero overflow-hidden">
 
-      {/* 캐릭터 이미지 — 테두리 없음, 가로 꽉 채움 */}
-      <div className="w-full">
+      {/* 캐릭터 이미지 — 2배 확대, 클리핑 */}
+      <div className="w-full overflow-hidden" style={{ height: '540px' }}>
         {charImg ? (
           <img
             src={charImg}
             alt={title}
-            className="w-full object-contain drop-shadow-xl"
+            className="w-full h-full object-contain drop-shadow-xl"
+            style={{ transform: 'scale(2)', transformOrigin: 'center center' }}
           />
         ) : (
-          <div className="flex items-center justify-center py-10">
+          <div className="flex items-center justify-center h-full">
             <span className="text-[240px] leading-none">✈️</span>
           </div>
         )}
