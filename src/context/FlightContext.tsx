@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useCallback, useEffect, useState } from 'react'
 import { getDepartureFlights, type Flight } from '../services/flightApi'
 
 interface FlightContextValue {
@@ -14,7 +14,6 @@ export function FlightProvider({ children }: { children: React.ReactNode }) {
   const [flights, setFlights] = useState<Flight[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const fetchedRef = useRef(false)
 
   const refetch = useCallback(() => {
     let cancelled = false
@@ -32,10 +31,9 @@ export function FlightProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (fetchedRef.current) return
-    fetchedRef.current = true
     return refetch()
-  }, [refetch])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <FlightContext.Provider value={{ flights, loading, lastUpdated, refetch }}>
