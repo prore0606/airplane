@@ -25,19 +25,17 @@ export default function CharacterCard({ stage, flight }: Props) {
   return (
     <div className="bg-white border border-brand-border rounded-hero overflow-hidden">
 
-      {/* 캐릭터 — 화면 꽉 채우게 크게 */}
-      <div className="bg-gradient-to-b from-brand-pale to-white flex flex-col items-center pt-4 pb-0">
+      {/* 캐릭터 — 이미지만 크게 */}
+      <div className="flex items-center justify-center bg-brand-pale py-4">
         {charImg ? (
           <img
             src={charImg}
             alt={STAGE_LABEL[stage]}
-            className="w-full object-contain drop-shadow-xl"
-            style={{ maxHeight: '480px' }}
+            className="object-contain drop-shadow-xl"
+            style={{ height: '460px', width: 'auto', maxWidth: '100%' }}
           />
         ) : (
-          <div className="flex items-center justify-center" style={{ height: '480px' }}>
-            <span className="text-[180px] leading-none">✈️</span>
-          </div>
+          <span className="text-[220px] leading-none">✈️</span>
         )}
       </div>
 

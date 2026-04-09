@@ -7,9 +7,10 @@ interface Props {
   stage: JourneyStage
   shuttles: ShuttleBus[]
   congestion: CongestionInfo[]
+  onReset: () => void
 }
 
-export default function StageExtras({ stage, shuttles, congestion }: Props) {
+export default function StageExtras({ stage, shuttles, congestion, onReset }: Props) {
   return (
     <>
       {/* 이동 중 — 셔틀버스 정보 */}
@@ -67,10 +68,18 @@ export default function StageExtras({ stage, shuttles, congestion }: Props) {
 
       {/* 귀국 완료 */}
       {stage === 'returned' && (
-        <div className="bg-brand-pale border border-brand-green/30 rounded-hero px-6 py-5 text-center">
-          <p className="text-2xl mb-2">🎉</p>
-          <p className="font-bold text-brand-black">여행 완료!</p>
-          <p className="text-sm text-brand-muted mt-1">수고하셨습니다. 배지가 지급되었습니다.</p>
+        <div className="space-y-3">
+          <div className="bg-brand-pale border border-brand-green/30 rounded-hero px-6 py-5 text-center">
+            <p className="text-2xl mb-2">🎉</p>
+            <p className="font-bold text-brand-black">여행 완료!</p>
+            <p className="text-sm text-brand-muted mt-1">수고하셨습니다. 배지가 지급되었습니다.</p>
+          </div>
+          <button
+            onClick={onReset}
+            className="w-full bg-brand-green text-white font-bold py-4 rounded-xl hover:bg-brand-dark transition-colors text-base"
+          >
+            여행 완료 — 처음 화면으로
+          </button>
         </div>
       )}
     </>
