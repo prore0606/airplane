@@ -8,7 +8,7 @@ import FlightPreviewList from '../components/home/FlightPreviewList'
 
 export default function HomePage() {
   const { data: flights, loading } = useFlights()
-  const { data: congestion } = useCongestion()
+  const { data: congestion, loading: congestionLoading, lastUpdated, refetch: refetchCongestion } = useCongestion()
   const fastest = congestion.reduce<typeof congestion[0] | null>((a, b) =>
     !a || Number(b.wait_time) < Number(a.wait_time) ? b : a, null)
   const next = flights[0] ?? null
@@ -38,7 +38,12 @@ export default function HomePage() {
             </div>
           </div>
 
-          <CongestionGrid congestion={congestion} />
+          <CongestionGrid
+            congestion={congestion}
+            loading={congestionLoading}
+            lastUpdated={lastUpdated}
+            onRefetch={refetchCongestion}
+          />
 
           {!loading && <FlightPreviewList flights={flights} />}
 
