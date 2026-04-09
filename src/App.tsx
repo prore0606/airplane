@@ -3,6 +3,7 @@ import type { ReactElement } from 'react'
 import SideNav from './components/layout/SideNav'
 import { type TabId } from './components/layout/BottomTab'
 import { JourneyProvider } from './context/JourneyContext'
+import { FlightProvider } from './context/FlightContext'
 import HomePage from './pages/HomePage'
 import JourneyPage from './pages/JourneyPage'
 import MapPage from './pages/MapPage'
@@ -22,13 +23,15 @@ export default function App() {
 
   return (
     <JourneyProvider>
-      <div className="flex min-h-screen bg-brand-surface">
-        <SideNav active={tab} onChange={setTab} />
-        <main className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
-          {PAGES[tab]}
-          <GateFloatingButton />
-        </main>
-      </div>
+      <FlightProvider>
+        <div className="flex min-h-screen bg-brand-surface">
+          <SideNav active={tab} onChange={setTab} />
+          <main className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
+            {PAGES[tab]}
+            <GateFloatingButton />
+          </main>
+        </div>
+      </FlightProvider>
     </JourneyProvider>
   )
 }

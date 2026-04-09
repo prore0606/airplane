@@ -1,6 +1,6 @@
 import TopNav from '../components/layout/TopNav'
 import { useJourney, STAGE_ORDER } from '../context/JourneyContext'
-import { useFlights } from '../hooks/useFlights'
+import { useFlightContext } from '../context/FlightContext'
 import { useShuttle } from '../hooks/useShuttle'
 import { useCongestion } from '../hooks/useCongestion'
 import ChapterBar from '../components/journey/ChapterBar'
@@ -11,7 +11,7 @@ import { NEXT_LABEL } from '../components/journey/stageConfig'
 
 export default function JourneyPage() {
   const { stage, setStage, setFlightRegistered } = useJourney()
-  const { data: flights } = useFlights()
+  const { flights } = useFlightContext()
   const { data: shuttles } = useShuttle()
   const { data: congestion } = useCongestion()
 

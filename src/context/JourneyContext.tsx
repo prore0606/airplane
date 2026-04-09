@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 
 /**
  * 여정 단계
@@ -21,6 +21,22 @@ export type JourneyStage =
   | 'boarding'
   | 'returned'
 
+const STORAGE_KEY_STAGE = 'airmate_stage'
+const STORAGE_KEY_FLIGHT = 'airmate_flight_registered'
+
+function loadStage(): JourneyStage {
+  const saved = localStorage.getItem(STORAGE_KEY_STAGE)
+  if (saved && [
+    'no_ticket', 'preparing', 'traveling', 'checkin',
+    'external', 'airside', 'boarding', 'returned',
+  ].includes(saved)) return saved as JourneyStage
+  return 'no_ticket'
+}
+
+function loadFlightRegistered(): boolean {
+  return localStorage.getItem(STORAGE_KEY_FLIGHT) === 'true'
+}
+
 export interface JourneyState {
   stage: JourneyStage
   setStage: (s: JourneyStage) => void
@@ -31,8 +47,24 @@ export interface JourneyState {
 const JourneyContext = createContext<JourneyState | null>(null)
 
 export function JourneyProvider({ children }: { children: ReactNode }) {
-  const [stage, setStage] = useState<JourneyStage>('no_ticket')
-  const [flightRegistered, setFlightRegistered] = useState(false)
+  const [stage, setStageState] = useState<JourneyStage>(loadStage)
+  const [flightRegistered, setFlightRegisteredState] = useState<boolean>(loadFlightRegistered)
+
+  function setStage(s: JourneyStage) {
+    setStageState(s)
+    localStorage.setItem(STORAGE_KEY_STAGE, s)
+  }
+
+  function setFlightRegistered(v: boolean) {
+    setFlightRegisteredState(v)
+    localStorage.setItem(STORAGE_KEY_FLIGHT, String(v))
+  }
+
+  // 앱 첫 로드 시 localStorage → state 동기화
+  useEffect(() => {
+    setStageState(loadStage())
+    setFlightRegisteredState(loadFlightRegistered())
+  }, [])
 
   return (
     <JourneyContext.Provider value={{ stage, setStage, flightRegistered, setFlightRegistered }}>

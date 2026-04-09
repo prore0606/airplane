@@ -6,14 +6,14 @@ import OcrResultForm from '../components/scan/OcrResultForm'
 import { extractTextFromImage } from '../services/ocr/tesseractService'
 import { parseBoardingPass, type ParsedBoardingPass } from '../services/ocr/boardingPassParser'
 import { useJourney } from '../context/JourneyContext'
-import { useFlights } from '../hooks/useFlights'
+import { useFlightContext } from '../context/FlightContext'
 import { parseDatetime, remarkColor, type Flight } from '../services/flightApi'
 
 type ScanStep = 'idle' | 'scanning' | 'result'
 
 export default function FlightPage() {
   const { setStage, setFlightRegistered } = useJourney()
-  const { data: flights, loading } = useFlights()
+  const { flights, loading } = useFlightContext()
 
   const [step, setStep] = useState<ScanStep>('idle')
   const [progress, setProgress] = useState(0)
