@@ -1,11 +1,10 @@
-export type TabId = 'home' | 'flight' | 'map' | 'character' | 'my'
+export type TabId = 'home' | 'journey' | 'map' | 'my'
 
 const TABS: { id: TabId; icon: string; label: string }[] = [
-  { id: 'home',      icon: '🏠', label: '홈' },
-  { id: 'flight',    icon: '✈️', label: '항공편' },
-  { id: 'map',       icon: '🗺️', label: '지도' },
-  { id: 'character', icon: '🎮', label: '캐릭터' },
-  { id: 'my',        icon: '🤝', label: 'MY' },
+  { id: 'home',    icon: '🏠', label: '홈' },
+  { id: 'journey', icon: '✈️', label: '여정' },
+  { id: 'map',     icon: '🗺️', label: '지도' },
+  { id: 'my',      icon: '👤', label: 'MY' },
 ]
 
 type Props = {
