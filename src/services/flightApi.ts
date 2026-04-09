@@ -37,14 +37,17 @@ export function remarkColor(remark: FlightRemark) {
 
 async function fetchFromApi(): Promise<Flight[]> {
   const key = import.meta.env.VITE_DATA_GO_KR_API_KEY
-  const base = import.meta.env.VITE_API_FLIGHT_STATUS
+  if (!key) throw new Error('env not set')
 
-  if (!key || !base) throw new Error('env not set')
+  // 개발 환경: Vite 프록시로 CORS 우회 / 프로덕션: 직접 호출
+  const base = import.meta.env.DEV
+    ? '/api/data-go-kr/B551177/StatusOfPassengerFlightsOdp'
+    : 'https://apis.data.go.kr/B551177/StatusOfPassengerFlightsOdp'
 
   const params = new URLSearchParams({
     serviceKey: key,
     type: 'json',
-    numOfRows: '20',
+    numOfRows: '100',
     pageNo: '1',
     lang: 'K',
     queryType: 'D',

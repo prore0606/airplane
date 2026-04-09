@@ -5,6 +5,12 @@
 
 const KEY = () => import.meta.env.VITE_DATA_GO_KR_API_KEY as string
 
+// 개발 환경: Vite 프록시로 CORS 우회 / 프로덕션: 직접 호출
+function proxyUrl(url: string): string {
+  if (!import.meta.env.DEV) return url
+  return url.replace('https://apis.data.go.kr', '/api/data-go-kr')
+}
+
 export async function fetchAirportApi<T>(
   baseUrl: string,
   extraParams: Record<string, string> = {},
@@ -12,12 +18,12 @@ export async function fetchAirportApi<T>(
   const params = new URLSearchParams({
     serviceKey: KEY(),
     type: 'json',
-    numOfRows: '20',
+    numOfRows: '100',
     pageNo: '1',
     ...extraParams,
   })
 
-  const res = await fetch(`${baseUrl}?${params}`, {
+  const res = await fetch(`${proxyUrl(baseUrl)}?${params}`, {
     signal: AbortSignal.timeout(8000),
   })
 
