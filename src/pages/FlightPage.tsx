@@ -1,16 +1,57 @@
+import { useState } from 'react'
 import TopNav from '../components/layout/TopNav'
+import ImageUploader from '../components/scan/ImageUploader'
+import ScanProgress from '../components/scan/ScanProgress'
+import OcrResultForm from '../components/scan/OcrResultForm'
+import { extractTextFromImage } from '../services/ocr/tesseractService'
+import { parseBoardingPass, type ParsedBoardingPass } from '../services/ocr/boardingPassParser'
+import { useJourney } from '../context/JourneyContext'
 import { useFlights } from '../hooks/useFlights'
 import { parseDatetime, remarkColor } from '../services/flightApi'
 
-const SCAN_OPTIONS = [
-  { icon: '🖼️', label: '갤러리에서' },
-  { icon: '💬', label: '카카오톡에서' },
-  { icon: '📧', label: '이메일에서' },
-  { icon: '📄', label: 'PDF 파일' },
-]
+type ScanStep = 'idle' | 'scanning' | 'result'
 
 export default function FlightPage() {
-  const { flights, loading, error } = useFlights()
+  const { setStage, setFlightRegistered } = useJourney()
+  const { flights, loading } = useFlights()
+
+  const [step, setStep] = useState<ScanStep>('idle')
+  const [progress, setProgress] = useState(0)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [parsed, setParsed] = useState<ParsedBoardingPass | null>(null)
+
+  async function handleFileSelect(file: File) {
+    // 미리보기 생성
+    setPreview(URL.createObjectURL(file))
+    setStep('scanning')
+    setProgress(0)
+
+    try {
+      const { text } = await extractTextFromImage(file, setProgress)
+      setProgress(100)
+      const result = parseBoardingPass(text)
+      setParsed(result)
+      setStep('result')
+    } catch {
+      setStep('idle')
+      alert('이미지 인식에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+
+  function handleRescan() {
+    setStep('idle')
+    setPreview(null)
+    setParsed(null)
+    setProgress(0)
+  }
+
+  function handleConfirm(info: ParsedBoardingPass) {
+    setFlightRegistered(true)
+    setStage('preparing')
+    // TODO: Supabase 연동 후 DB 저장
+    console.log('등록된 항공편 정보:', info)
+    handleRescan()
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -24,34 +65,29 @@ export default function FlightPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-6">
+
             {/* 왼쪽: 스캔 영역 */}
-            <div className="space-y-4">
-              <div className="bg-brand-pale border-2 border-dashed border-brand-mid rounded-hero px-8 py-10 text-center">
-                <div className="text-5xl mb-4">📸</div>
-                <p className="font-bold text-brand-black mb-2">항공권 사진을 올려주세요</p>
-                <p className="text-sm text-brand-muted leading-relaxed">
-                  AI가 자동으로 항공편 정보를<br />읽어서 등록해드립니다
-                </p>
-              </div>
-              <button className="w-full bg-brand-green text-white font-bold py-3.5 rounded-xl hover:bg-brand-dark transition-colors">
-                📷 카메라로 촬영하기
-              </button>
-              <div className="grid grid-cols-2 gap-2">
-                {SCAN_OPTIONS.map((opt) => (
-                  <button key={opt.label}
-                    className="bg-white border border-brand-border rounded-xl p-3.5 flex items-center gap-2.5 hover:border-brand-green transition-colors">
-                    <span className="text-xl">{opt.icon}</span>
-                    <span className="text-xs font-semibold text-brand-ink">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
+            <div>
+              {step === 'idle' && (
+                <ImageUploader onFileSelect={handleFileSelect} />
+              )}
+              {step === 'scanning' && (
+                <ScanProgress progress={progress} imagePreview={preview} />
+              )}
+              {step === 'result' && parsed && (
+                <OcrResultForm
+                  parsed={parsed}
+                  onConfirm={handleConfirm}
+                  onRescan={handleRescan}
+                />
+              )}
             </div>
 
             {/* 오른쪽: 실시간 출발 현황 */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-brand-muted uppercase tracking-wider">실시간 출발 현황</p>
-                {!loading && !error && (
+                {!loading && (
                   <span className="text-[10px] text-brand-green font-semibold bg-brand-pale px-2 py-0.5 rounded-pill">
                     ● LIVE
                   </span>
@@ -62,12 +98,6 @@ export default function FlightPage() {
                 <div className="bg-white border border-brand-border rounded-xl p-6 text-center">
                   <div className="text-2xl mb-2 animate-pulse">✈️</div>
                   <p className="text-sm text-brand-muted">운항 정보 로딩 중...</p>
-                </div>
-              )}
-
-              {error && !loading && (
-                <div className="bg-white border border-brand-border rounded-xl p-4">
-                  <p className="text-xs text-brand-muted text-center">샘플 데이터로 표시 중</p>
                 </div>
               )}
 
