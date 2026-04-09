@@ -18,30 +18,37 @@ const STAGE_DESC: Record<JourneyStage, string> = {
   returned:   '여행 완료! 수고했어요 🎉',
 }
 
+/** /img/여행준비중.png → "여행준비중" */
+function imgTitle(path: string) {
+  return path.split('/').pop()?.replace('.png', '') ?? ''
+}
+
 export default function CharacterCard({ stage, flight }: Props) {
   const charImg = STAGE_CHARACTER[stage]
   const sched = flight ? parseDatetime(flight.scheduleDatetime) : null
+  const title = charImg ? imgTitle(charImg) : STAGE_LABEL[stage]
 
   return (
     <div className="bg-white border border-brand-border rounded-hero overflow-hidden">
 
-      {/* 캐릭터 — 이미지만 크게 */}
-      <div className="flex items-center justify-center bg-brand-pale py-4">
+      {/* 캐릭터 이미지 — 배경 없음, 이미지만 크게 */}
+      <div className="flex items-center justify-center pt-6 pb-2">
         {charImg ? (
           <img
             src={charImg}
-            alt={STAGE_LABEL[stage]}
+            alt={title}
             className="object-contain drop-shadow-xl"
-            style={{ height: '460px', width: 'auto', maxWidth: '100%' }}
+            style={{ height: '500px', width: 'auto', maxWidth: '100%' }}
           />
         ) : (
-          <span className="text-[220px] leading-none">✈️</span>
+          <span className="text-[240px] leading-none">✈️</span>
         )}
       </div>
 
-      {/* 캐릭터 행동 설명 */}
-      <div className="text-center px-6 py-4 bg-white">
-        <p className="text-base font-bold text-brand-black">{STAGE_DESC[stage]}</p>
+      {/* 이미지 파일명 제목 + 설명 */}
+      <div className="text-center px-6 pt-2 pb-4">
+        <p className="text-xl font-black text-brand-black">{title}</p>
+        <p className="text-sm text-brand-muted mt-1">{STAGE_DESC[stage]}</p>
       </div>
 
       {/* 단계 정보 */}
