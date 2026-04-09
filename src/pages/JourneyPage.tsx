@@ -87,7 +87,7 @@ function ChapterBar({ stage }: { stage: JourneyStage }) {
 
 export default function JourneyPage() {
   const { stage, setStage, setFlightRegistered } = useJourney()
-  const { flights } = useFlights()
+  const { data: flights } = useFlights()
   const { data: shuttles } = useShuttle()
   const { data: congestion } = useCongestion()
   const next = flights[0]

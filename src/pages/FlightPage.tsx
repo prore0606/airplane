@@ -7,13 +7,13 @@ import { extractTextFromImage } from '../services/ocr/tesseractService'
 import { parseBoardingPass, type ParsedBoardingPass } from '../services/ocr/boardingPassParser'
 import { useJourney } from '../context/JourneyContext'
 import { useFlights } from '../hooks/useFlights'
-import { parseDatetime, remarkColor } from '../services/flightApi'
+import { parseDatetime, remarkColor, type Flight } from '../services/flightApi'
 
 type ScanStep = 'idle' | 'scanning' | 'result'
 
 export default function FlightPage() {
   const { setStage, setFlightRegistered } = useJourney()
-  const { flights, loading } = useFlights()
+  const { data: flights, loading } = useFlights()
 
   const [step, setStep] = useState<ScanStep>('idle')
   const [progress, setProgress] = useState(0)
@@ -101,7 +101,7 @@ export default function FlightPage() {
                 </div>
               )}
 
-              {!loading && flights.map((f) => {
+              {!loading && flights.map((f: Flight) => {
                 const sched = parseDatetime(f.scheduleDatetime)
                 const est = parseDatetime(f.estimatedDatetime)
                 const delayed = f.scheduleDatetime !== f.estimatedDatetime

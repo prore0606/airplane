@@ -33,7 +33,7 @@ function parseFlightNumber(text: string): string {
 }
 
 /** 항공사 코드 추출 후 한글명 반환 */
-function parseAirline(text: string, flightNumber: string): string {
+function parseAirline(_text: string, flightNumber: string): string {
   const code = flightNumber.slice(0, 2)
   return AIRLINE_NAMES[code] ?? code
 }
