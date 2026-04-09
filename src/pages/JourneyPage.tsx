@@ -2,6 +2,9 @@ import TopNav from '../components/layout/TopNav'
 import { useJourney, STAGE_CHARACTER, STAGE_LABEL, STAGE_ORDER, type JourneyStage } from '../context/JourneyContext'
 import { useFlights } from '../hooks/useFlights'
 import { parseDatetime } from '../services/flightApi'
+import { useShuttle } from '../hooks/useShuttle'
+import { useCongestion } from '../hooks/useCongestion'
+import { congestionColor } from '../services/congestionApi'
 
 /* 단계별 할 일 카드 */
 const STAGE_ACTIONS: Record<JourneyStage, { icon: string; text: string; sub?: string }[]> = {
@@ -85,6 +88,8 @@ function ChapterBar({ stage }: { stage: JourneyStage }) {
 export default function JourneyPage() {
   const { stage, setStage, setFlightRegistered } = useJourney()
   const { flights } = useFlights()
+  const { data: shuttles } = useShuttle()
+  const { data: congestion } = useCongestion()
   const next = flights[0]
   const sched = next ? parseDatetime(next.scheduleDatetime) : null
 
@@ -170,6 +175,48 @@ export default function JourneyPage() {
                   <span className="ml-auto text-brand-muted text-sm">›</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* 이동 중 — 셔틀버스 정보 */}
+          {stage === 'traveling' && shuttles.length > 0 && (
+            <div>
+              <p className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">셔틀버스 정보</p>
+              <div className="space-y-2">
+                {shuttles.map((s) => (
+                  <div key={s.route_id} className="bg-white border border-brand-border rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">🚌</span>
+                      <div>
+                        <p className="font-semibold text-brand-black text-sm">{s.route_name}</p>
+                        <p className="text-xs text-brand-muted">배차 {s.interval}분 간격</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-brand-black text-sm">{s.depart_time}</p>
+                      <span className="text-[10px] text-brand-green font-bold">{s.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 체크인 단계 — 보안검색 혼잡도 */}
+          {stage === 'checkin' && congestion.length > 0 && (
+            <div>
+              <p className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-3">보안검색 라인 현황</p>
+              <div className="grid grid-cols-5 gap-2">
+                {congestion.map((c) => (
+                  <div key={c.line_number} className="bg-white border border-brand-border rounded-xl p-3 text-center">
+                    <p className="text-xs font-bold text-brand-black mb-1">{c.line_number.replace('번 라인', '')}번</p>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-pill block ${congestionColor(c.congestion)}`}>
+                      {c.congestion}
+                    </span>
+                    <p className="text-[10px] text-brand-muted mt-1">{c.wait_time}분</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

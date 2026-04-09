@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import TopNav from '../components/layout/TopNav'
+import { useParking } from '../hooks/useParking'
+import { parkingStatus } from '../services/parkingApi'
 
 interface ParkingSpot {
   zone: string
@@ -10,6 +12,7 @@ interface ParkingSpot {
 export default function MapPage() {
   const [parking, setParking] = useState<ParkingSpot | null>(null)
   const [saving, setSaving] = useState(false)
+  const { data: parkingLots, loading: parkingLoading } = useParking()
 
   function handleSaveParking() {
     setSaving(true)
@@ -142,6 +145,43 @@ export default function MapPage() {
                 </div>
               )}
 
+              {/* 실시간 주차 현황 */}
+              <div className="bg-white border border-brand-border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-bold text-brand-muted uppercase tracking-wider">실시간 주차 현황</p>
+                  {!parkingLoading && (
+                    <span className="text-[10px] text-brand-green font-semibold bg-brand-pale px-2 py-0.5 rounded-pill">● LIVE</span>
+                  )}
+                </div>
+                {parkingLoading ? (
+                  <p className="text-sm text-brand-muted animate-pulse">로딩 중...</p>
+                ) : (
+                  <div className="space-y-2">
+                    {parkingLots.map((lot) => {
+                      const { label, color, pct } = parkingStatus(lot.parking_occupy, lot.parking_total)
+                      const avail = Number(lot.parking_total) - Number(lot.parking_occupy)
+                      return (
+                        <div key={lot.parking_area_no}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-semibold text-brand-ink">{lot.parking_area_no}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-bold ${color}`}>{label}</span>
+                              <span className="text-[10px] text-brand-muted">{avail}면 여유</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 bg-brand-border rounded-pill overflow-hidden">
+                            <div
+                              className={`h-full rounded-pill transition-all ${pct >= 90 ? 'bg-brand-red' : pct >= 70 ? 'bg-brand-orange' : 'bg-brand-green'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* 주차 요금 안내 */}
               <div className="bg-brand-surface border border-brand-border rounded-xl p-4">
                 <p className="text-xs font-bold text-brand-muted uppercase tracking-wider mb-3">인천공항 주차 요금</p>
@@ -149,7 +189,7 @@ export default function MapPage() {
                   {[
                     { label: '단기 주차장', rate: '1,800원 / 30분' },
                     { label: '장기 주차장', rate: '1,200원 / 1시간' },
-                    { label: '화물청사', rate: '1,000원 / 1시간' },
+                    { label: '화물청사',   rate: '1,000원 / 1시간' },
                   ].map((r) => (
                     <div key={r.label} className="flex justify-between">
                       <span className="text-brand-muted">{r.label}</span>
