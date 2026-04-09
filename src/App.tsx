@@ -6,6 +6,7 @@ import { JourneyProvider } from './context/JourneyContext'
 import { FlightProvider } from './context/FlightContext'
 import HomePage from './pages/HomePage'
 import JourneyPage from './pages/JourneyPage'
+import FlightsPage from './pages/FlightsPage'
 import MapPage from './pages/MapPage'
 import MyPage from './pages/MyPage'
 import GateFloatingButton from './components/GateFloatingButton'
@@ -14,6 +15,7 @@ import './App.css'
 const PAGES: Record<TabId, ReactElement> = {
   home:    <HomePage />,
   journey: <JourneyPage />,
+  flights: <FlightsPage />,
   map:     <MapPage />,
   my:      <MyPage />,
 }
