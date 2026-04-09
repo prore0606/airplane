@@ -20,6 +20,8 @@ const TIME_SLOTS: { id: TimeSlot; label: string; range: [number, number] }[] = [
 ]
 
 function getHour(raw: string) {
+  // HHMM("0830") 또는 YYYYMMDDHHMMSS("20260409083000") 모두 처리
+  if (raw.length <= 4) return parseInt(raw.slice(0, 2), 10)
   return parseInt(raw.slice(8, 10), 10)
 }
 
