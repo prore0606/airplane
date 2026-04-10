@@ -35,6 +35,9 @@ export default function JourneyPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [parsed, setParsed] = useState<ParsedBoardingPass | null>(null)
 
+  // 직접 입력 모달 상태
+  const [showManual, setShowManual] = useState(false)
+
   const nextLabel = NEXT_LABEL[stage] ?? ''
   const flight = flights[0]
 
@@ -79,11 +82,17 @@ export default function JourneyPage() {
     }
   }
 
-  /** 확인 → 여정 시작 */
+  /** 직접 입력 모달 열기 */
+  function handleOpenManual() {
+    setShowManual(true)
+  }
+
+  /** 확인 → 여정 시작 (스캔 / 직접입력 공용) */
   function handleConfirm(info: ParsedBoardingPass) {
     setFlightRegistered(true)
     setStage('preparing')
     setShowScan(false)
+    setShowManual(false)
     console.log('등록된 항공편:', info)
   }
 
@@ -120,6 +129,7 @@ export default function JourneyPage() {
           <StageActions
             stage={stage}
             onScan={handleOpenScan}
+            onManualInput={handleOpenManual}
             onNext={handleNext}
             nextLabel={nextLabel}
           />
@@ -187,6 +197,44 @@ export default function JourneyPage() {
                   onRescan={handleRescan}
                 />
               )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── 직접 입력 모달 ─────────────────────────── */}
+      {showManual && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowManual(false)}
+          />
+          <div className="relative bg-white rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl">
+
+            {/* 헤더 */}
+            <div className="px-5 py-4 flex items-center justify-between border-b border-brand-border shrink-0">
+              <div>
+                <p className="font-black text-base text-brand-black">직접 항공편 입력</p>
+                <p className="text-xs text-brand-muted mt-0.5">항공편 정보를 직접 입력해주세요</p>
+              </div>
+              <button
+                onClick={() => setShowManual(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-brand-surface hover:bg-brand-border transition-colors text-brand-body shrink-0 ml-3"
+              >
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* 빈 폼 — 모든 필드 직접 입력 */}
+            <div className="overflow-y-auto px-5 py-4 flex-1">
+              <OcrResultForm
+                parsed={{}}
+                onConfirm={handleConfirm}
+                onRescan={() => setShowManual(false)}
+              />
             </div>
 
           </div>

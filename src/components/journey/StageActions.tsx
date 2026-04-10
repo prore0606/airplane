@@ -4,11 +4,12 @@ import { STAGE_ACTIONS } from './stageConfig'
 interface Props {
   stage: JourneyStage
   onScan: () => void
+  onManualInput: () => void
   onNext: () => void
   nextLabel: string
 }
 
-export default function StageActions({ stage, onScan, onNext, nextLabel }: Props) {
+export default function StageActions({ stage, onScan, onManualInput, onNext, nextLabel }: Props) {
   const actions = STAGE_ACTIONS[stage]
 
   return (
@@ -22,7 +23,10 @@ export default function StageActions({ stage, onScan, onNext, nextLabel }: Props
           >
             📸 항공권 스캔으로 시작하기
           </button>
-          <button className="w-full bg-white border border-brand-border text-brand-ink font-semibold py-3.5 rounded-xl hover:border-brand-green transition-colors">
+          <button
+            onClick={onManualInput}
+            className="w-full bg-white border border-brand-border text-brand-ink font-semibold py-3.5 rounded-xl hover:border-brand-green transition-colors"
+          >
             ✏️ 직접 항공편 입력
           </button>
         </div>
