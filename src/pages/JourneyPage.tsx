@@ -134,42 +134,51 @@ export default function JourneyPage() {
         </div>
       </div>
 
-      {/* ── 스캔 바텀시트 모달 ─────────────────────────── */}
+      {/* ── 스캔 바텀시트 ─────────────────────────── */}
       {showScan && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          {/* 배경 딤 */}
+          {/* 딤 배경 */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => scanStep !== 'scanning' && setShowScan(false)}
           />
 
-          {/* 시트 본체 */}
-          <div className="relative bg-white rounded-t-[28px] max-h-[92vh] flex flex-col">
+          {/* 시트 */}
+          <div className="relative bg-white rounded-t-[32px] max-h-[94vh] flex flex-col shadow-2xl">
 
-            {/* 핸들 바 */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-brand-border rounded-pill" />
+            {/* 핸들 */}
+            <div className="flex justify-center pt-4 pb-2 shrink-0">
+              <div className="w-12 h-1.5 bg-brand-border rounded-pill" />
             </div>
 
             {/* 헤더 */}
-            <div className="px-6 pb-3 flex items-center justify-between border-b border-brand-border">
+            <div className="px-6 pt-1 pb-4 flex items-start justify-between shrink-0">
               <div>
-                <p className="font-black text-lg text-brand-black">항공권 스캔</p>
-                <p className="text-xs text-brand-muted mt-0.5">
-                  {scanStep === 'idle' && '사진을 첨부하면 AI가 정보를 자동으로 읽어드려요'}
-                  {scanStep === 'scanning' && '항공권 정보를 인식하는 중이에요...'}
-                  {scanStep === 'result' && '인식된 내용을 확인·수정하고 시작하세요'}
+                <p className="font-black text-xl text-brand-black leading-tight">
+                  {scanStep === 'idle'    && '항공권 가져오기'}
+                  {scanStep === 'scanning' && '정보 인식 중...'}
+                  {scanStep === 'result'  && '정보 확인 · 수정'}
+                </p>
+                <p className="text-sm text-brand-muted mt-1">
+                  {scanStep === 'idle'    && 'AI가 자동으로 편명·게이트·시간을 읽어드려요'}
+                  {scanStep === 'scanning' && 'Tesseract OCR이 텍스트를 추출하고 있어요'}
+                  {scanStep === 'result'  && '틀린 부분이 있으면 탭해서 수정하세요'}
                 </p>
               </div>
               {scanStep !== 'scanning' && (
                 <button
                   onClick={() => setShowScan(false)}
-                  className="text-brand-muted hover:text-brand-black text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-brand-surface transition-colors"
+                  className="mt-0.5 w-9 h-9 flex items-center justify-center rounded-full bg-brand-surface hover:bg-brand-border transition-colors text-brand-body shrink-0 ml-3"
                 >
-                  ✕
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                 </button>
               )}
             </div>
+
+            {/* 구분선 */}
+            <div className="h-px bg-brand-border mx-6 shrink-0" />
 
             {/* 컨텐츠 */}
             <div className="overflow-y-auto px-6 py-5 space-y-4 flex-1">

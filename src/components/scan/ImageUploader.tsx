@@ -5,24 +5,13 @@ interface Props {
   disabled?: boolean
 }
 
-/**
- * 단일 책임: 파일 선택 UI
- * - 데스크톱: 클릭 파일첨부 + 드래그앤드롭
- * - 모바일: 카메라 촬영 / 갤러리 선택 (input 분리로 확실하게 동작)
- */
 export default function ImageUploader({ onFileSelect, disabled }: Props) {
-  // 파일 선택 input (데스크톱 + 모바일 갤러리)
-  const fileRef = useRef<HTMLInputElement>(null)
-  // 카메라 촬영 전용 input (capture="environment")
+  const fileRef   = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) {
-      onFileSelect(file)
-      // 같은 파일 재선택을 위해 초기화
-      e.target.value = ''
-    }
+    if (file) { onFileSelect(file); e.target.value = '' }
   }
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
@@ -32,62 +21,89 @@ export default function ImageUploader({ onFileSelect, disabled }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
 
-      {/* 드래그앤드롭 영역 (데스크톱) */}
+      {/* 탑승권 일러스트 카드 */}
       <div
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={() => !disabled && fileRef.current?.click()}
-        className={`bg-brand-pale border-2 border-dashed border-brand-mid rounded-hero px-8 py-10 text-center transition-colors
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-brand-green hover:bg-brand-pale/70'}`}
+        className={`relative overflow-hidden rounded-2xl cursor-pointer group
+          ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
       >
-        <div className="text-5xl mb-3">📎</div>
-        <p className="font-bold text-brand-black mb-1">항공권 사진을 첨부하세요</p>
-        <p className="text-sm text-brand-muted leading-relaxed">
-          클릭하거나 파일을 드래그하세요<br />
-          <span className="text-xs">JPG · PNG · PDF 지원</span>
-        </p>
+        {/* 그라디언트 배경 */}
+        <div className="bg-gradient-to-br from-brand-green to-brand-dark px-8 pt-8 pb-6 text-center">
+
+          {/* 탑승권 아이콘 영역 */}
+          <div className="relative inline-block mb-4">
+            {/* 탑승권 카드 모양 */}
+            <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-6 py-4 inline-flex flex-col items-center gap-1">
+              <span className="text-4xl">✈️</span>
+              <div className="flex gap-1 mt-1">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="w-1 h-1 rounded-full bg-white/60" />
+                ))}
+              </div>
+              <div className="text-white/80 text-[10px] font-mono tracking-widest">BOARDING PASS</div>
+            </div>
+            {/* 호버 효과 */}
+            <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+
+          <p className="text-white font-black text-lg leading-tight">항공권을 가져오세요</p>
+          <p className="text-white/70 text-sm mt-1">AI가 정보를 자동으로 읽어드려요</p>
+
+          {/* 점선 분리선 (탑승권 티어) */}
+          <div className="flex items-center gap-1 mt-5 mx-[-8px]">
+            {[...Array(24)].map((_, i) => (
+              <div key={i} className="flex-1 h-px bg-white/25" />
+            ))}
+          </div>
+
+          <p className="text-white/50 text-xs mt-3">파일을 이 영역에 드래그해도 됩니다</p>
+        </div>
+
+        {/* 반원 컷아웃 효과 */}
+        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white" />
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white" />
       </div>
 
-      {/* 모바일 전용: 카메라 촬영 */}
-      <button
-        disabled={disabled}
-        onClick={() => cameraRef.current?.click()}
-        className="w-full bg-brand-green text-white font-bold py-3.5 rounded-xl hover:bg-brand-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-      >
-        <span className="text-lg">📷</span>
-        <span>카메라로 촬영하기</span>
-      </button>
+      {/* 액션 버튼 2개 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* 카메라 */}
+        <button
+          disabled={disabled}
+          onClick={() => cameraRef.current?.click()}
+          className="flex flex-col items-center gap-2 bg-brand-pale border-2 border-brand-green rounded-2xl py-5
+            hover:bg-brand-green hover:text-white transition-all group disabled:opacity-50"
+        >
+          <span className="text-3xl group-hover:scale-110 transition-transform">📷</span>
+          <div className="text-center">
+            <p className="text-sm font-black text-brand-black group-hover:text-white">카메라</p>
+            <p className="text-[10px] text-brand-muted group-hover:text-white/80 mt-0.5">바로 촬영</p>
+          </div>
+        </button>
 
-      {/* 갤러리 / PDF */}
-      <button
-        disabled={disabled}
-        onClick={() => fileRef.current?.click()}
-        className="w-full bg-white border border-brand-border rounded-xl py-3.5 flex items-center justify-center gap-2 hover:border-brand-green transition-colors disabled:opacity-50"
-      >
-        <span className="text-lg">🖼️</span>
-        <span className="text-sm font-semibold text-brand-ink">갤러리 · 파일에서 선택</span>
-      </button>
+        {/* 갤러리 / 파일 */}
+        <button
+          disabled={disabled}
+          onClick={() => fileRef.current?.click()}
+          className="flex flex-col items-center gap-2 bg-brand-surface border-2 border-brand-border rounded-2xl py-5
+            hover:border-brand-green hover:bg-brand-pale transition-all group disabled:opacity-50"
+        >
+          <span className="text-3xl group-hover:scale-110 transition-transform">🖼️</span>
+          <div className="text-center">
+            <p className="text-sm font-black text-brand-black">갤러리 / 파일</p>
+            <p className="text-[10px] text-brand-muted mt-0.5">사진 · PDF</p>
+          </div>
+        </button>
+      </div>
 
-      {/* 파일 선택 input — 데스크톱 + 모바일 갤러리 */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-        className="hidden"
-        onChange={handleChange}
-      />
-
-      {/* 카메라 전용 input — 모바일에서 카메라 앱 직접 실행 */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleChange}
-      />
+      {/* hidden inputs */}
+      <input ref={fileRef}   type="file" accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+        className="hidden" onChange={handleChange} />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment"
+        className="hidden" onChange={handleChange} />
     </div>
   )
 }
