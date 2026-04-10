@@ -1,5 +1,6 @@
 import { useState, useEffect, type ChangeEvent } from 'react'
 import type { ParsedBoardingPass } from '../../services/ocr/boardingPassParser'
+import { AIRLINE_TERMINAL } from '../../services/ocr/boardingPassParser'
 
 interface Props {
   parsed: ParsedBoardingPass
@@ -7,53 +8,84 @@ interface Props {
   onRescan: () => void
 }
 
-const FIELD_LABELS: { key: keyof ParsedBoardingPass; label: string; placeholder: string }[] = [
-  { key: 'flightNumber',   label: '항공편명',   placeholder: 'KE723' },
-  { key: 'airline',        label: '항공사',     placeholder: '대한항공' },
-  { key: 'origin',         label: '출발 공항',  placeholder: 'ICN' },
-  { key: 'destination',    label: '도착 공항',  placeholder: 'NRT' },
-  { key: 'departureTime',  label: '출발 시간',  placeholder: '13:40' },
-  { key: 'terminal',       label: '터미널',     placeholder: 'T1' },
-  { key: 'gate',           label: '게이트',     placeholder: 'G23' },
-  { key: 'date',           label: '출발 날짜',  placeholder: '2026-04-03' },
+const FIELD_LABELS: {
+  key: keyof ParsedBoardingPass
+  label: string
+  placeholder: string
+  hint?: string
+}[] = [
+  { key: 'flightNumber',  label: '항공편명',   placeholder: 'KE723' },
+  { key: 'airline',       label: '항공사',     placeholder: '대한항공' },
+  { key: 'origin',        label: '출발 공항',  placeholder: 'ICN' },
+  { key: 'destination',   label: '도착 공항',  placeholder: 'NRT' },
+  { key: 'date',          label: '출발 날짜',  placeholder: '2026-04-10' },
+  { key: 'departureTime', label: '출발 시각',  placeholder: '13:40' },
+  { key: 'boardingTime',  label: '탑승 시각',  placeholder: '12:55', hint: '탑승권의 BOARDING TIME' },
+  { key: 'terminal',      label: '터미널',     placeholder: 'T1', hint: '항공사 입력 시 자동완성' },
+  { key: 'gate',          label: '탑승구 (게이트)', placeholder: 'G23' },
+  { key: 'seat',          label: '좌석번호',   placeholder: '12A' },
 ]
 
-/**
- * 단일 책임: OCR 파싱 결과를 폼으로 보여주고 수정 후 확인
- * 파싱 로직 없음, OCR 실행 없음
- */
 export default function OcrResultForm({ parsed, onConfirm, onRescan }: Props) {
   const [form, setForm] = useState<ParsedBoardingPass>(parsed)
 
   useEffect(() => { setForm(parsed) }, [parsed])
 
+  // 항공사 변경 시 터미널 자동완성
+  useEffect(() => {
+    if (!form.airline) return
+    const autoTerminal = AIRLINE_TERMINAL[form.airline]
+    if (autoTerminal && !form.terminal) {
+      setForm((prev) => ({ ...prev, terminal: autoTerminal }))
+    }
+  }, [form.airline])
+
   function handleChange(key: keyof ParsedBoardingPass) {
-    return (e: ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+    return (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value
+      setForm((prev) => {
+        const next = { ...prev, [key]: value }
+        // 항공사를 직접 바꾸면 터미널 즉시 자동완성
+        if (key === 'airline') {
+          const auto = AIRLINE_TERMINAL[value]
+          if (auto) next.terminal = auto
+        }
+        return next
+      })
+    }
   }
 
   const filledCount = FIELD_LABELS.filter(({ key }) => !!form[key]).length
-  const allFilled = filledCount === FIELD_LABELS.length
+  const total = FIELD_LABELS.length
 
   return (
     <div className="space-y-4">
 
-      {/* 인식 결과 헤더 */}
-      <div className="bg-white border border-brand-border rounded-xl overflow-hidden">
-        <div className={`px-5 py-3 flex items-center justify-between ${allFilled ? 'bg-brand-green' : 'bg-brand-orange'}`}>
-          <span className="text-sm font-bold text-white">
-            {allFilled ? '✅ 인식 완료 — 내용을 확인해주세요' : `⚠️ ${filledCount}/${FIELD_LABELS.length} 항목 인식됨 — 빈 항목을 채워주세요`}
-          </span>
-          <button onClick={onRescan} className="text-[10px] text-white/70 hover:text-white underline">
-            다시 스캔
-          </button>
-        </div>
+      {/* 상태 헤더 */}
+      <div className={`px-4 py-2.5 rounded-xl flex items-center justify-between
+        ${filledCount === total ? 'bg-brand-green' : 'bg-brand-orange'}`}>
+        <span className="text-xs font-bold text-white">
+          {filledCount === total
+            ? '✅ 모두 입력됨 — 확인 후 시작하세요'
+            : `✏️ ${filledCount} / ${total} 항목 입력됨`}
+        </span>
+        <button onClick={onRescan} className="text-[10px] text-white/70 hover:text-white underline">
+          취소
+        </button>
+      </div>
 
-        <div className="p-5 grid grid-cols-2 gap-3">
-          {FIELD_LABELS.map(({ key, label, placeholder }) => (
+      {/* 필드 그리드 */}
+      <div className="grid grid-cols-2 gap-3">
+        {FIELD_LABELS.map(({ key, label, placeholder, hint }) => {
+          const filled = !!form[key]
+          const isAutoFilled = key === 'terminal' && !!AIRLINE_TERMINAL[form.airline ?? ''] && form.terminal === AIRLINE_TERMINAL[form.airline ?? '']
+          return (
             <div key={key}>
               <label className="text-[10px] font-bold text-brand-muted uppercase tracking-wider block mb-1">
                 {label}
+                {isAutoFilled && (
+                  <span className="ml-1 text-brand-green normal-case tracking-normal font-medium">자동</span>
+                )}
               </label>
               <input
                 value={form[key] ?? ''}
@@ -61,11 +93,19 @@ export default function OcrResultForm({ parsed, onConfirm, onRescan }: Props) {
                 placeholder={placeholder}
                 className={`w-full border rounded-xl px-3 py-2.5 text-sm font-semibold text-brand-black outline-none transition-colors
                   focus:border-brand-green
-                  ${form[key] ? 'border-brand-border bg-white' : 'border-brand-orange/50 bg-orange-50'}`}
+                  ${filled
+                    ? isAutoFilled
+                      ? 'border-brand-green bg-brand-pale'
+                      : 'border-brand-border bg-white'
+                    : 'border-brand-orange/50 bg-orange-50'
+                  }`}
               />
+              {hint && !filled && (
+                <p className="text-[10px] text-brand-muted mt-0.5">{hint}</p>
+              )}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
 
       {/* 확인 버튼 */}
