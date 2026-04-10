@@ -21,8 +21,11 @@ export type JourneyStage =
   | 'boarding'
   | 'returned'
 
-const STORAGE_KEY_STAGE = 'airmate_stage'
-const STORAGE_KEY_FLIGHT = 'airmate_flight_registered'
+export type TransportMode = 'car' | 'transit'
+
+const STORAGE_KEY_STAGE     = 'airmate_stage'
+const STORAGE_KEY_FLIGHT    = 'airmate_flight_registered'
+const STORAGE_KEY_TRANSPORT = 'airmate_transport_mode'
 
 function loadStage(): JourneyStage {
   const saved = localStorage.getItem(STORAGE_KEY_STAGE)
@@ -37,11 +40,18 @@ function loadFlightRegistered(): boolean {
   return localStorage.getItem(STORAGE_KEY_FLIGHT) === 'true'
 }
 
+function loadTransportMode(): TransportMode | null {
+  const v = localStorage.getItem(STORAGE_KEY_TRANSPORT)
+  return v === 'car' || v === 'transit' ? v : null
+}
+
 export interface JourneyState {
   stage: JourneyStage
   setStage: (s: JourneyStage) => void
   flightRegistered: boolean
   setFlightRegistered: (v: boolean) => void
+  transportMode: TransportMode | null
+  setTransportMode: (m: TransportMode) => void
 }
 
 const JourneyContext = createContext<JourneyState | null>(null)
@@ -49,6 +59,7 @@ const JourneyContext = createContext<JourneyState | null>(null)
 export function JourneyProvider({ children }: { children: ReactNode }) {
   const [stage, setStageState] = useState<JourneyStage>(loadStage)
   const [flightRegistered, setFlightRegisteredState] = useState<boolean>(loadFlightRegistered)
+  const [transportMode, setTransportModeState] = useState<TransportMode | null>(loadTransportMode)
 
   function setStage(s: JourneyStage) {
     setStageState(s)
@@ -60,14 +71,23 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY_FLIGHT, String(v))
   }
 
-  // 앱 첫 로드 시 localStorage → state 동기화
+  function setTransportMode(m: TransportMode) {
+    setTransportModeState(m)
+    localStorage.setItem(STORAGE_KEY_TRANSPORT, m)
+  }
+
   useEffect(() => {
     setStageState(loadStage())
     setFlightRegisteredState(loadFlightRegistered())
+    setTransportModeState(loadTransportMode())
   }, [])
 
   return (
-    <JourneyContext.Provider value={{ stage, setStage, flightRegistered, setFlightRegistered }}>
+    <JourneyContext.Provider value={{
+      stage, setStage,
+      flightRegistered, setFlightRegistered,
+      transportMode, setTransportMode,
+    }}>
       {children}
     </JourneyContext.Provider>
   )

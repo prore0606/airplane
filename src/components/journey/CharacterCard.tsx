@@ -32,7 +32,7 @@ export default function CharacterCard({ stage, flight }: Props) {
     <div className="bg-white rounded-hero overflow-hidden">
 
       {/* 캐릭터 이미지 — 2배 확대, 클리핑 */}
-      <div className="w-full overflow-hidden" style={{ height: '540px' }}>
+      <div className="w-full overflow-hidden" style={{ height: '380px' }}>
         {charImg ? (
           <img
             src={charImg}
@@ -42,13 +42,13 @@ export default function CharacterCard({ stage, flight }: Props) {
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <span className="text-[240px] leading-none">✈️</span>
+            <span className="text-[180px] leading-none">✈️</span>
           </div>
         )}
       </div>
 
       {/* 이미지 파일명 제목 + 설명 */}
-      <div className="text-center px-6 pt-2 pb-4">
+      <div className="text-center px-6 pt-1 pb-3">
         <p className="text-xl font-black text-brand-black">{title}</p>
         <p className="text-sm text-brand-muted mt-1">{STAGE_DESC[stage]}</p>
       </div>

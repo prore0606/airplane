@@ -1,33 +1,42 @@
 import { fetchAirportApi } from './airportApiBase'
 
+/** 실제 API 응답 필드 */
 export interface ParkingLot {
-  parking_area_no: string    // 주차장 구역 (단기1, 장기1 등)
-  parking_occupy: string     // 현재 주차 대수
-  parking_total: string      // 총 주차 가능 대수
-  datagb: string             // 구분 (단기/장기)
+  floor: string       // 구역명 (예: "T1 단기주차장지하1층", "T1 장기 P1 주차장")
+  parking: string     // 현재 주차 대수
+  parkingarea: string // 총 주차 가능 대수
+  datetm: string      // 갱신 시각 (yyyyMMddHHmmss.sss)
 }
 
-const SAMPLE: ParkingLot[] = [
-  { parking_area_no: '단기 1주차장',  parking_occupy: '1240', parking_total: '1500', datagb: '단기' },
-  { parking_area_no: '단기 2주차장',  parking_occupy: '890',  parking_total: '1200', datagb: '단기' },
-  { parking_area_no: '장기 1주차장',  parking_occupy: '2100', parking_total: '3000', datagb: '장기' },
-  { parking_area_no: '장기 2주차장',  parking_occupy: '1560', parking_total: '2500', datagb: '장기' },
-  { parking_area_no: '화물청사 주차장', parking_occupy: '320',  parking_total: '800',  datagb: '화물' },
-]
+/** floor 문자열에서 터미널 추출 */
+export function lotTerminal(floor: string): 'T1' | 'T2' | null {
+  if (floor.startsWith('T1')) return 'T1'
+  if (floor.startsWith('T2')) return 'T2'
+  return null
+}
 
-/** 잔여 비율로 혼잡도 계산 */
-export function parkingStatus(occupy: string, total: string) {
-  const pct = Math.round((Number(occupy) / Number(total)) * 100)
-  if (pct >= 90) return { label: '만차 임박', color: 'text-brand-red', pct }
-  if (pct >= 70) return { label: '혼잡',     color: 'text-brand-orange', pct }
-  return          { label: '여유',           color: 'text-brand-green', pct }
+/** floor 문자열에서 유형 추출 */
+export function lotType(floor: string): '단기' | '장기' | '예약' {
+  if (floor.includes('단기')) return '단기'
+  if (floor.includes('장기')) return '장기'
+  return '예약'
+}
+
+/** 주차 혼잡도 계산 (parking = 점유 대수, parkingarea = 총 대수) */
+export function parkingStatus(parking: string, parkingarea: string) {
+  const total = Number(parkingarea)
+  const occupied = Number(parking)
+  if (total === 0) return { label: '정보없음', color: 'text-brand-muted', pct: 0 }
+  const pct = Math.round((occupied / total) * 100)
+  if (pct >= 95) return { label: '만차',   color: 'text-brand-red',    pct }
+  if (pct >= 80) return { label: '혼잡',   color: 'text-orange-500',   pct }
+  if (pct >= 60) return { label: '보통',   color: 'text-yellow-600',   pct }
+  return              { label: '여유',   color: 'text-brand-green',  pct }
 }
 
 export async function getParkingStatus(): Promise<ParkingLot[]> {
-  try {
-    const base = import.meta.env.VITE_API_PARKING_ICN
-    const data = await fetchAirportApi<ParkingLot>(base, { airport_code: 'ICN' })
-    if (data.length > 0) return data
-  } catch { /* fall through */ }
-  return SAMPLE
+  const base = import.meta.env.VITE_API_PARKING_ICN
+  // 실제 operation sub-path 포함
+  const data = await fetchAirportApi<ParkingLot>(`${base}/getTrackingParking`)
+  return data
 }

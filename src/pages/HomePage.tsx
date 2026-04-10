@@ -5,6 +5,7 @@ import FlightHeroCard from '../components/home/FlightHeroCard'
 import { CongestionMiniCard, CongestionGrid } from '../components/home/CongestionSection'
 import FacilityGrid from '../components/home/FacilityGrid'
 import FlightPreviewList from '../components/home/FlightPreviewList'
+import ChecklistSection from '../components/home/ChecklistSection'
 
 export default function HomePage() {
   const { flights, loading } = useFlightContext()
@@ -45,6 +46,8 @@ export default function HomePage() {
             lastUpdated={lastUpdated}
             onRefetch={refetchCongestion}
           />
+
+          <ChecklistSection />
 
           {!loading && <FlightPreviewList flights={flights} />}
 

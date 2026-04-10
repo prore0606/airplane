@@ -1,16 +1,20 @@
-import type { JourneyStage } from '../../context/JourneyContext'
+import type { JourneyStage, TransportMode } from '../../context/JourneyContext'
 import { STAGE_ACTIONS } from './stageConfig'
 
 interface Props {
   stage: JourneyStage
+  transportMode: TransportMode | null
   onScan: () => void
   onManualInput: () => void
   onNext: () => void
   nextLabel: string
 }
 
-export default function StageActions({ stage, onScan, onManualInput, onNext, nextLabel }: Props) {
+export default function StageActions({ stage, transportMode, onScan, onManualInput, onNext, nextLabel }: Props) {
   const actions = STAGE_ACTIONS[stage]
+
+  // preparing + 자가용: 주차 현황이 메인 → 지금 할 일 숨김
+  const hideActions = stage === 'preparing' && transportMode === 'car'
 
   return (
     <>
@@ -33,7 +37,7 @@ export default function StageActions({ stage, onScan, onManualInput, onNext, nex
       )}
 
       {/* 현재 단계 할 일 */}
-      {stage !== 'no_ticket' && (
+      {stage !== 'no_ticket' && !hideActions && (
         <div className="space-y-3">
           <p className="text-sm font-bold text-brand-muted uppercase tracking-wider">지금 할 일</p>
           {actions.map((a, i) => (

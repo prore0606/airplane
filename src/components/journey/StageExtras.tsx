@@ -1,16 +1,22 @@
-import type { JourneyStage } from '../../context/JourneyContext'
+import type { JourneyStage, TransportMode } from '../../context/JourneyContext'
 import type { ShuttleBus } from '../../services/shuttleApi'
 import type { CongestionInfo } from '../../services/congestionApi'
 import { congestionColor } from '../../services/congestionApi'
+import type { ParkingLot } from '../../services/parkingApi'
+import ParkingStatus from '../airport/ParkingStatus'
+import FacilityList from '../airport/FacilityList'
 
 interface Props {
   stage: JourneyStage
   shuttles: ShuttleBus[]
   congestion: CongestionInfo[]
+  parking: ParkingLot[]
+  terminal?: string
+  transportMode: TransportMode | null
   onReset: () => void
 }
 
-export default function StageExtras({ stage, shuttles, congestion, onReset }: Props) {
+export default function StageExtras({ stage, shuttles, congestion, parking, terminal, transportMode, onReset }: Props) {
   return (
     <>
       {/* 이동 중 — 셔틀버스 정보 */}
@@ -55,6 +61,11 @@ export default function StageExtras({ stage, shuttles, congestion, onReset }: Pr
         </div>
       )}
 
+      {/* 출발 준비 — 주차현황 (자가용만) */}
+      {stage === 'preparing' && transportMode === 'car' && (
+        <ParkingStatus lots={parking} terminal={terminal} />
+      )}
+
       {/* 외부 대기 시 안내 */}
       {stage === 'external' && (
         <div className="bg-brand-orange/10 border border-brand-orange/30 rounded-xl px-5 py-4 flex items-start gap-3">
@@ -64,6 +75,11 @@ export default function StageExtras({ stage, shuttles, congestion, onReset }: Pr
             <p className="text-xs text-brand-muted mt-0.5">화면 하단 버튼으로 언제든 게이트 입장 가능합니다</p>
           </div>
         </div>
+      )}
+
+      {/* 면세구역·탑승 대기 — 쇼핑·식음료 */}
+      {(stage === 'airside' || stage === 'boarding') && (
+        <FacilityList terminal={terminal} />
       )}
 
       {/* 귀국 완료 */}
