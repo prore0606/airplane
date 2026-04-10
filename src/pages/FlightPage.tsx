@@ -1,61 +1,148 @@
+import { useState } from 'react'
 import TopNav from '../components/layout/TopNav'
+import ImageUploader from '../components/scan/ImageUploader'
+import ScanProgress from '../components/scan/ScanProgress'
+import OcrResultForm from '../components/scan/OcrResultForm'
+import { extractTextFromImage } from '../services/ocr/tesseractService'
+import { parseBoardingPass, type ParsedBoardingPass } from '../services/ocr/boardingPassParser'
+import { useJourney } from '../context/JourneyContext'
+import { useFlightContext } from '../context/FlightContext'
+import { parseDatetime, remarkColor, type Flight } from '../services/flightApi'
 
-const SCAN_OPTIONS = [
-  { icon: '🖼️', label: '갤러리에서' },
-  { icon: '💬', label: '카카오톡에서' },
-  { icon: '📧', label: '이메일에서' },
-  { icon: '📄', label: 'PDF 파일' },
-]
+type ScanStep = 'idle' | 'scanning' | 'result'
 
 export default function FlightPage() {
+  const { setStage, setFlightRegistered } = useJourney()
+  const { flights, loading } = useFlightContext()
+
+  const [step, setStep] = useState<ScanStep>('idle')
+  const [progress, setProgress] = useState(0)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [parsed, setParsed] = useState<ParsedBoardingPass | null>(null)
+
+  async function handleFileSelect(file: File) {
+    // 미리보기 생성
+    setPreview(URL.createObjectURL(file))
+    setStep('scanning')
+    setProgress(0)
+
+    try {
+      const { text } = await extractTextFromImage(file, setProgress)
+      setProgress(100)
+      const result = parseBoardingPass(text)
+      setParsed(result)
+      setStep('result')
+    } catch {
+      setStep('idle')
+      alert('이미지 인식에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+
+  function handleRescan() {
+    setStep('idle')
+    setPreview(null)
+    setParsed(null)
+    setProgress(0)
+  }
+
+  function handleConfirm(info: ParsedBoardingPass) {
+    setFlightRegistered(true)
+    setStage('preparing')
+    // TODO: Supabase 연동 후 DB 저장
+    console.log('등록된 항공편 정보:', info)
+    handleRescan()
+  }
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-20 no-scrollbar">
+    <div className="flex flex-col h-full">
       <TopNav />
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
 
-      <div className="px-4 pt-3 pb-2">
-        <p className="text-base font-bold text-brand-black">항공권 등록하기</p>
-        <p className="text-xs text-brand-muted mt-0.5">스캔하면 모든 여행 정보가 자동 연결됩니다</p>
-      </div>
+          <div>
+            <p className="text-xl font-bold text-brand-black">항공권 등록 · 실시간 운항</p>
+            <p className="text-sm text-brand-muted mt-1">스캔하면 모든 여행 정보가 자동 연결됩니다</p>
+          </div>
 
-      {/* 스캔 히어로 */}
-      <div className="mx-4 mb-3 bg-brand-pale border-2 border-dashed border-brand-mid rounded-hero px-5 py-8 text-center">
-        <div className="text-4xl mb-3">📸</div>
-        <p className="text-sm font-bold text-brand-black mb-1.5">항공권 사진을 올려주세요</p>
-        <p className="text-xs text-brand-muted leading-relaxed">AI가 자동으로 항공편 정보를<br />읽어서 등록해드립니다</p>
-      </div>
+          <div className="grid grid-cols-2 gap-6">
 
-      <button className="mx-4 mb-2.5 bg-brand-green text-white font-bold text-sm py-3.5 rounded-xl">
-        📷 카메라로 촬영하기
-      </button>
-
-      <div className="grid grid-cols-2 gap-2 mx-4 mb-4">
-        {SCAN_OPTIONS.map((opt) => (
-          <button key={opt.label}
-            className="bg-white border border-brand-border rounded-xl p-4 flex items-center gap-2.5">
-            <span className="text-xl">{opt.icon}</span>
-            <span className="text-xs font-semibold text-brand-ink">{opt.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* OCR 결과 샘플 */}
-      <div className="mx-4 bg-white border border-brand-border rounded-xl overflow-hidden">
-        <div className="bg-brand-green px-4 py-3 flex items-center justify-between">
-          <span className="text-[11px] font-bold text-white tracking-wider">✅ 자동 인식 완료</span>
-          <span className="text-[10px] bg-white/25 text-white px-2 py-0.5 rounded-pill">확인됨</span>
-        </div>
-        <div className="px-4 py-3 flex flex-col gap-2.5">
-          {[
-            ['항공편', 'KE 723 · 대한항공'],
-            ['출발', 'ICN → NRT'],
-            ['시간', '13:40 → 15:20'],
-            ['터미널', 'T1 · G게이트'],
-          ].map(([key, val]) => (
-            <div key={key} className="flex justify-between items-center">
-              <span className="text-[11px] text-brand-muted">{key}</span>
-              <span className="text-xs font-bold text-brand-black">{val}</span>
+            {/* 왼쪽: 스캔 영역 */}
+            <div>
+              {step === 'idle' && (
+                <ImageUploader onFileSelect={handleFileSelect} />
+              )}
+              {step === 'scanning' && (
+                <ScanProgress progress={progress} imagePreview={preview} />
+              )}
+              {step === 'result' && parsed && (
+                <OcrResultForm
+                  parsed={parsed}
+                  onConfirm={handleConfirm}
+                  onRescan={handleRescan}
+                />
+              )}
             </div>
-          ))}
+
+            {/* 오른쪽: 실시간 출발 현황 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-brand-muted uppercase tracking-wider">실시간 출발 현황</p>
+                {!loading && (
+                  <span className="text-[10px] text-brand-green font-semibold bg-brand-pale px-2 py-0.5 rounded-pill">
+                    ● LIVE
+                  </span>
+                )}
+              </div>
+
+              {loading && (
+                <div className="bg-white border border-brand-border rounded-xl p-6 text-center">
+                  <div className="text-2xl mb-2 animate-pulse">✈️</div>
+                  <p className="text-sm text-brand-muted">운항 정보 로딩 중...</p>
+                </div>
+              )}
+
+              {!loading && flights.map((f: Flight) => {
+                const sched = parseDatetime(f.scheduleDatetime)
+                const est = parseDatetime(f.estimatedDatetime)
+                const delayed = f.scheduleDatetime !== f.estimatedDatetime
+                const badgeCls = remarkColor(f.remark)
+
+                return (
+                  <div key={f.flightId}
+                    className="bg-white border border-brand-border rounded-xl px-4 py-3.5 hover:border-brand-green transition-colors cursor-pointer">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-display font-black text-sm text-brand-black">{f.flightId}</span>
+                          <span className="text-xs text-brand-muted truncate">{f.airline}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm font-bold text-brand-ink">
+                          <span>ICN</span>
+                          <span className="text-brand-green text-xs">→</span>
+                          <span>{f.airportCode}</span>
+                          <span className="text-brand-muted font-normal text-xs ml-1">{f.airport}</span>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-pill shrink-0 ${badgeCls}`}>
+                        {f.remark}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-2 pt-2 border-t border-brand-border text-xs text-brand-muted">
+                      <span>
+                        출발{' '}
+                        <span className={delayed ? 'line-through mr-1' : 'font-semibold text-brand-ink'}>
+                          {sched.time}
+                        </span>
+                        {delayed && <span className="font-semibold text-brand-red">{est.time}</span>}
+                      </span>
+                      <span>{f.terminalId} · {f.gateNumber}게이트</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
