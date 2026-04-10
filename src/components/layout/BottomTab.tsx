@@ -15,7 +15,8 @@ type Props = {
 
 export default function BottomTab({ active, onChange }: Props) {
   return (
-    <nav className="bg-white border-t border-brand-border flex shrink-0 px-2 pt-2 pb-4 sm:pb-6">
+    <nav className="bg-white border-t border-brand-border shrink-0 pt-2 pb-4">
+      <div className="max-w-lg mx-auto flex">
       {TABS.map((tab) => {
         const isActive = tab.id === active
         return (
@@ -39,6 +40,7 @@ export default function BottomTab({ active, onChange }: Props) {
           </button>
         )
       })}
+      </div>
     </nav>
   )
 }
