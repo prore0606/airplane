@@ -9,7 +9,7 @@ export default function FlightsPage() {
     <div className="flex flex-col h-full">
       <TopNav />
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-6">
+        <div className="px-4 py-4">
           <AllFlightsTab
             flights={flights}
             loading={loading}

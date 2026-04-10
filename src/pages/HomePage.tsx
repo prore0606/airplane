@@ -19,7 +19,7 @@ export default function HomePage() {
       <TopNav showNotifDot />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-6 space-y-6">
+        <div className="px-4 py-4 space-y-6">
 
           <div>
             <p className="text-sm text-brand-muted">안녕하세요 👋</p>
