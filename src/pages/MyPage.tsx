@@ -29,7 +29,7 @@ export default function MyPage() {
     <div className="flex flex-col h-full">
       <TopNav />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-4 space-y-6">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
 
           <p className="text-xl font-bold text-brand-black">MY</p>
 

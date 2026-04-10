@@ -57,7 +57,7 @@ export default function FlightPage() {
     <div className="flex flex-col h-full">
       <TopNav />
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-4 space-y-6">
+        <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
 
           <div>
             <p className="text-xl font-bold text-brand-black">항공권 등록 · 실시간 운항</p>
