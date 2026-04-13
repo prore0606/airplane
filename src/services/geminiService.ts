@@ -1,10 +1,9 @@
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`
 
 const SYSTEM_PROMPT = `너는 인천국제공항 전문 AI 도우미 "에어봇"이야.
 공항 이용객들이 출국 과정에서 궁금한 것들을 친절하고 간결하게 안내해줘.
 반말 금지, 존댓말로 답변해. 이모지 적절히 사용해서 친근하게.
-답변은 3-4문장 이내로 짧고 명확하게.
+답변은 반드시 완결된 문장으로 끝내고, 내용은 충분히 친절하고 상세하게 안내해줘.
 
 [인천공항 주요 시설 정보]
 ■ 제1터미널(T1)
@@ -50,46 +49,71 @@ export interface ChatMessage {
   text: string
 }
 
+// 사용 가능한 모델 순서대로 시도
+const MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-flash-latest',
+]
+
+// 디버그: 사용 가능한 모델 목록 출력
+export async function listAvailableModels() {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`
+  )
+  const data = await res.json()
+  console.log('사용 가능한 모델:', data)
+  return data
+}
+
+async function tryFetch(model: string, body: object): Promise<Response> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 export async function sendMessage(
   messages: ChatMessage[],
   userMessage: string,
   context?: string,
 ): Promise<string> {
+  const systemText = context
+    ? `${SYSTEM_PROMPT}\n\n[현재 사용자 상태]\n${context}`
+    : SYSTEM_PROMPT
+
   const contents = [
     ...messages.map((m) => ({
       role: m.role,
       parts: [{ text: m.text }],
     })),
-    {
-      role: 'user',
-      parts: [{ text: userMessage }],
-    },
+    { role: 'user', parts: [{ text: userMessage }] },
   ]
 
-  const systemInstruction = context
-    ? `${SYSTEM_PROMPT}\n\n[현재 사용자 상태]\n${context}`
-    : SYSTEM_PROMPT
-
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemInstruction }] },
-      contents,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 512,
-      },
-    }),
-  })
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    console.error('Gemini API error:', response.status, errData)
-    throw new Error(`Gemini API 오류: ${response.status}`)
+  const body = {
+    system_instruction: { parts: [{ text: systemText }] },
+    contents,
+    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
   }
 
-  const data = await response.json()
-  console.log('Gemini response:', data)
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '죄송해요, 다시 시도해 주세요.'
+  let lastError = ''
+  for (const model of MODELS) {
+    try {
+      const res = await tryFetch(model, body)
+      if (res.ok) {
+        const data = await res.json()
+        return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '죄송해요, 다시 시도해 주세요.'
+      }
+      const errData = await res.json().catch(() => ({}))
+      lastError = `${model}: ${res.status} ${JSON.stringify(errData)}`
+      console.warn('모델 실패, 다음 시도:', lastError)
+    } catch (e) {
+      lastError = String(e)
+      console.warn('요청 실패:', lastError)
+    }
+  }
+
+  throw new Error(lastError)
 }
