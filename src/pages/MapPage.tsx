@@ -1,11 +1,17 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import TopNav from '../components/layout/TopNav'
 import AirportMap from '../components/map/AirportMap'
+import type { HighlightedPlace } from '../components/map/AirportMap'
+import FacilityDetailModal from '../components/map/FacilityDetailModal'
+import MapPlaceCard from '../components/map/MapPlaceCard'
+import ParkingNavigationModal from '../components/map/ParkingNavigationModal'
 import { useKakaoMap } from '../hooks/useKakaoMap'
 import { useParking } from '../hooks/useParking'
 import { parkingStatus } from '../services/parkingApi'
-import { MAP_FACILITIES } from '../data/airportFacilities'
-import type { MapFacility, FacilityCategory } from '../data/airportFacilities'
+import type { ParkingLot } from '../services/parkingApi'
+import { searchAirportFacilities, searchNearbyPlace } from '../services/kakaoLocalService'
+import type { KakaoPlace } from '../services/kakaoLocalService'
+import type { FacilityCategory } from '../data/airportFacilities'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,13 +33,27 @@ export default function MapPage() {
   // Map state
   const [selectedCategory, setSelectedCategory] = useState<FacilityCategory | 'all'>('all')
   const [terminalFilter, setTerminalFilter] = useState<TerminalFilter>('all')
-  const [selectedFacility, setSelectedFacility] = useState<MapFacility | null>(null)
+  const [selectedPlace, setSelectedPlace] = useState<KakaoPlace | null>(null)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
 
+  // Kakao local search
+  const [places, setPlaces] = useState<KakaoPlace[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+
+  // 카테고리 변경 시 카카오 로컬 검색
+  useEffect(() => {
+    if (selectedCategory === 'all') { setPlaces([]); return }
+    setSearchLoading(true)
+    searchAirportFacilities(selectedCategory)
+      .then(setPlaces)
+      .finally(() => setSearchLoading(false))
+  }, [selectedCategory])
+
   // Parking state
   const [parking, setParking] = useState<ParkingSpot | null>(null)
+  const [navLot, setNavLot] = useState<ParkingLot | null>(null)
   const [saving, setSaving] = useState(false)
   const { data: parkingLots, loading: parkingLoading } = useParking()
 
@@ -41,16 +61,25 @@ export default function MapPage() {
   const kakaoAppKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined
   const { loaded: mapLoaded, status: mapStatus } = useKakaoMap(kakaoAppKey)
 
-  // Filtered facilities
-  const filteredFacilities = MAP_FACILITIES.filter((f) => {
-    const catMatch = selectedCategory === 'all' || f.category === selectedCategory
-    const termMatch = terminalFilter === 'all' || f.terminal === terminalFilter
-    return catMatch && termMatch
-  })
+  // 지도에 하이라이트할 장소
+  const highlightedPlace: HighlightedPlace | null = selectedPlace
+    ? { lat: parseFloat(selectedPlace.y), lng: parseFloat(selectedPlace.x), name: selectedPlace.place_name }
+    : null
 
-  // Handlers
-  const handleFacilitySelect = useCallback((facility: MapFacility) => {
-    setSelectedFacility((prev) => (prev?.id === facility.id ? null : facility))
+  // 지도 클릭 → 주변 장소 검색
+  const [mapClickedPlace, setMapClickedPlace] = useState<KakaoPlace | null>(null)
+  const [mapSearching, setMapSearching] = useState(false)
+
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+    setMapSearching(true)
+    setMapClickedPlace(null)
+    const found = await searchNearbyPlace(lat, lng)
+    setMapClickedPlace(found)
+    setMapSearching(false)
+  }, [])
+
+  const handleFacilitySelect = useCallback((place: KakaoPlace) => {
+    setSelectedPlace(place)
   }, [])
 
   function handleLocate() {
@@ -84,6 +113,7 @@ export default function MapPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <div className="flex flex-col h-full">
       <TopNav />
 
@@ -135,7 +165,7 @@ export default function MapPage() {
                 {([['all', '전체'], ['T1', 'T1'], ['T2', 'T2']] as [TerminalFilter, string][]).map(([id, label]) => (
                   <button
                     key={id}
-                    onClick={() => { setTerminalFilter(id); setSelectedFacility(null) }}
+                    onClick={() => { setTerminalFilter(id); setSelectedPlace(null) }}
                     className={`flex-1 py-2 text-sm font-bold rounded-xl transition-colors border ${
                       terminalFilter === id
                         ? 'bg-brand-green text-white border-brand-green'
@@ -151,10 +181,32 @@ export default function MapPage() {
               <AirportMap
                 selectedCategory={selectedCategory}
                 userLocation={userLocation}
-                onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedFacility(null) }}
+                onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedPlace(null) }}
                 mapLoaded={mapLoaded}
                 mapStatus={mapStatus}
+                highlightedPlace={highlightedPlace}
+                onMapClick={handleMapClick}
+                clickedPlace={mapClickedPlace}
+                searchingPlace={mapSearching}
+                onClickedPlaceClose={() => setMapClickedPlace(null)}
               />
+
+              {/* 미리보기 지도 아래 장소 카드 */}
+              {mapSearching && (
+                <div className="bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-brand-surface rounded w-1/2" />
+                    <div className="h-2 bg-brand-surface rounded w-1/3" />
+                  </div>
+                </div>
+              )}
+              {!mapSearching && mapClickedPlace && (
+                <MapPlaceCard
+                  place={mapClickedPlace}
+                  onClose={() => setMapClickedPlace(null)}
+                />
+              )}
 
               {/* My location button */}
               <div className="flex items-center gap-3">
@@ -178,84 +230,78 @@ export default function MapPage() {
                 )}
               </div>
 
-              {/* Selected facility detail card */}
-              {selectedFacility && (
-                <div className="bg-white border-2 border-brand-green rounded-xl p-4 space-y-2 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-brand-pale flex items-center justify-center text-2xl shrink-0">
-                        {selectedFacility.emoji}
-                      </div>
-                      <div>
-                        <p className="font-bold text-brand-black">{selectedFacility.name}</p>
-                        <p className="text-xs text-brand-muted">{selectedFacility.terminal} · {selectedFacility.floor}</p>
-                        <p className="text-xs text-brand-muted">{selectedFacility.location}</p>
-                      </div>
+              {/* 시설 검색 결과 */}
+              {selectedCategory !== 'all' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-brand-muted uppercase tracking-wider">검색 결과</p>
+                    {!searchLoading && <span className="text-xs text-brand-muted">{places.length}개</span>}
+                  </div>
+
+                  {searchLoading ? (
+                    <div className="space-y-2">
+                      {[1,2,3].map((i) => (
+                        <div key={i} className="bg-white border border-brand-border rounded-xl p-4 flex items-center gap-3 animate-pulse">
+                          <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3 bg-brand-surface rounded w-2/3" />
+                            <div className="h-2 bg-brand-surface rounded w-1/2" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <button
-                      onClick={() => setSelectedFacility(null)}
-                      className="text-brand-muted hover:text-brand-ink text-lg shrink-0"
-                      aria-label="닫기"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1 border-t border-brand-border">
-                    <span className="text-xs text-brand-muted">운영시간</span>
-                    <span className="text-xs font-semibold text-brand-ink">{selectedFacility.hours}</span>
-                    {selectedFacility.badge && (
-                      <span className="ml-auto text-[10px] font-bold bg-brand-pale text-brand-green px-2 py-0.5 rounded-pill">
-                        {selectedFacility.badge}
-                      </span>
-                    )}
-                  </div>
+                  ) : places.length === 0 ? (
+                    <div className="bg-brand-surface border border-brand-border rounded-xl p-6 text-center">
+                      <p className="text-brand-muted text-sm">검색 결과가 없습니다</p>
+                    </div>
+                  ) : (
+                    places.map((place) => (
+                      <button
+                        key={place.id}
+                        onClick={() => handleFacilitySelect(place)}
+                        className="w-full text-left bg-white border border-brand-border rounded-xl p-4 flex items-center gap-3 transition-colors hover:border-brand-green active:bg-brand-pale"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-brand-surface flex items-center justify-center text-xl shrink-0">
+                          {selectedCategory === 'food' ? '🍽️'
+                            : selectedCategory === 'dutyfree' ? '🛍️'
+                            : selectedCategory === 'lounge' ? '🛋️'
+                            : selectedCategory === 'atm' ? '💳'
+                            : selectedCategory === 'exchange' ? '💱'
+                            : selectedCategory === 'pharmacy' ? '💊'
+                            : '🏬'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-brand-black text-sm truncate">{place.place_name}</p>
+                          <p className="text-xs text-brand-muted truncate">
+                            {place.road_address_name || place.address_name}
+                          </p>
+                          {place.phone && (
+                            <p className="text-xs text-brand-muted">{place.phone}</p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          {place.distance && (
+                            <p className="text-xs text-brand-green font-bold">
+                              {Number(place.distance) >= 1000
+                                ? `${(Number(place.distance)/1000).toFixed(1)}km`
+                                : `${place.distance}m`}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-brand-muted mt-0.5">지도 보기 →</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
 
-              {/* Facility list */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-brand-muted uppercase tracking-wider">
-                    시설 목록
-                  </p>
-                  <span className="text-xs text-brand-muted">{filteredFacilities.length}개</span>
+              {selectedCategory === 'all' && (
+                <div className="bg-brand-surface border border-brand-border rounded-xl p-6 text-center">
+                  <p className="text-2xl mb-2">☝️</p>
+                  <p className="text-sm font-semibold text-brand-ink">위에서 카테고리를 선택하면</p>
+                  <p className="text-xs text-brand-muted mt-1">카카오 지도 기반 실제 시설 목록이 나옵니다</p>
                 </div>
-
-                {filteredFacilities.length === 0 ? (
-                  <div className="bg-brand-surface border border-brand-border rounded-xl p-6 text-center">
-                    <p className="text-brand-muted text-sm">해당 조건의 시설이 없습니다</p>
-                  </div>
-                ) : (
-                  filteredFacilities.map((facility) => (
-                    <button
-                      key={facility.id}
-                      onClick={() => handleFacilitySelect(facility)}
-                      className={`w-full text-left bg-white border rounded-xl p-4 flex items-center gap-3 transition-colors hover:border-brand-green ${
-                        selectedFacility?.id === facility.id
-                          ? 'border-brand-green'
-                          : 'border-brand-border'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-brand-surface flex items-center justify-center text-xl shrink-0">
-                        {facility.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-brand-black text-sm truncate">{facility.name}</p>
-                        <p className="text-xs text-brand-muted">{facility.floor} · {facility.location}</p>
-                        <p className="text-xs text-brand-muted">{facility.hours}</p>
-                      </div>
-                      <div className="text-right shrink-0 space-y-1">
-                        <p className="text-[10px] font-bold text-brand-muted">{facility.terminal}</p>
-                        {facility.badge && (
-                          <span className="text-[10px] font-bold bg-brand-pale text-brand-green px-1.5 py-0.5 rounded-pill">
-                            {facility.badge}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+              )}
             </div>
           )}
 
@@ -337,10 +383,27 @@ export default function MapPage() {
                     {parkingLots.map((lot) => {
                       const { label, color, pct } = parkingStatus(lot.parking, lot.parkingarea)
                       const avail = Math.max(0, Number(lot.parkingarea) - Number(lot.parking))
+                      const isAvailable = pct < 95
                       return (
-                        <div key={lot.floor}>
+                        <button
+                          key={lot.floor}
+                          onClick={() => isAvailable && setNavLot(lot)}
+                          disabled={!isAvailable}
+                          className={`w-full text-left transition-all rounded-xl p-2 -mx-2 ${
+                            isAvailable
+                              ? 'hover:bg-brand-pale active:bg-brand-pale cursor-pointer'
+                              : 'cursor-default opacity-60'
+                          }`}
+                        >
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-semibold text-brand-ink">{lot.floor}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-brand-ink">{lot.floor}</span>
+                              {isAvailable && (
+                                <span className="text-[10px] text-brand-green font-bold bg-brand-pale px-1.5 py-0.5 rounded-full">
+                                  길안내 →
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
                               <span className={`text-[10px] font-bold ${color}`}>{label}</span>
                               <span className="text-[10px] text-brand-muted">{avail}면 여유</span>
@@ -354,7 +417,7 @@ export default function MapPage() {
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -384,5 +447,20 @@ export default function MapPage() {
         </div>
       </div>
     </div>
+
+    {selectedPlace && (
+      <FacilityDetailModal
+        place={selectedPlace}
+        onClose={() => setSelectedPlace(null)}
+      />
+    )}
+
+    {navLot && (
+      <ParkingNavigationModal
+        lot={navLot}
+        onClose={() => setNavLot(null)}
+      />
+    )}
+    </>
   )
 }

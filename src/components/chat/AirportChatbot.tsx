@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { sendMessage, type ChatMessage } from '../../services/geminiService'
+import { sendMessage, listAvailableModels, type ChatMessage } from '../../services/geminiService'
 import { useJourney } from '../../context/JourneyContext'
 import { useChecklist } from '../../hooks/useChecklist'
 
@@ -41,6 +41,7 @@ export default function AirportChatbot() {
   function openChat() {
     setOpen(true)
     setTimeout(() => setVisible(true), 10)
+    listAvailableModels().catch(console.error)
     if (messages.length === 0) {
       setMessages([
         {
