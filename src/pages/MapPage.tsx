@@ -186,9 +186,12 @@ export default function MapPage() {
                 mapStatus={mapStatus}
                 highlightedPlace={highlightedPlace}
                 onMapClick={handleMapClick}
+                clickedPlace={mapClickedPlace}
+                searchingPlace={mapSearching}
+                onClickedPlaceClose={() => setMapClickedPlace(null)}
               />
 
-              {/* 지도 클릭 시 표시되는 장소 카드 (지도 아래, 오버레이 없음) */}
+              {/* 미리보기 지도 아래 장소 카드 */}
               {mapSearching && (
                 <div className="bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 animate-pulse">
                   <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />

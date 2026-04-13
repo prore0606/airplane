@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { FacilityCategory } from '../../data/airportFacilities'
 import type { KakaoMapStatus } from '../../hooks/useKakaoMap'
 import type { KakaoPlace } from '../../services/kakaoLocalService'
+import MapPlaceCard from './MapPlaceCard'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -16,7 +17,6 @@ const CATEGORY_META: { id: FacilityCategory | 'all'; label: string; icon: string
   { id: 'pharmacy', label: '약국',  icon: '💊' },
 ]
 
-// 인천공항 T1·T2 실제 좌표
 const TERMINALS = [
   { id: 'T1', label: '제1터미널', lat: 37.4491, lng: 126.4505, color: '#1DB954' },
   { id: 'T2', label: '제2터미널', lat: 37.4697, lng: 126.4426, color: '#3498DB' },
@@ -38,7 +38,12 @@ interface Props {
   mapStatus: KakaoMapStatus
   highlightedPlace?: HighlightedPlace | null
   onMapClick?: (lat: number, lng: number) => void
+  clickedPlace?: KakaoPlace | null
+  searchingPlace?: boolean
+  onClickedPlaceClose?: () => void
 }
+
+// ── 맵 헬퍼 함수들 ──────────────────────────────────────────────────────────
 
 function buildMap(container: HTMLDivElement, level: number): any {
   const kakao = window.kakao
@@ -51,20 +56,9 @@ function placeTerminalMarkers(map: any): any[] {
   return TERMINALS.map((t) => {
     const position = new kakao.maps.LatLng(t.lat, t.lng)
     const content = `
-      <div style="
-        display:flex;flex-direction:column;align-items:center;gap:4px;
-        transform:translate(-50%,-100%);cursor:default;
-      ">
-        <div style="
-          background:${t.color};color:white;font-weight:900;font-size:13px;
-          padding:6px 14px;border-radius:20px;
-          box-shadow:0 3px 10px rgba(0,0,0,0.25);
-          white-space:nowrap;
-        ">${t.id} ${t.label}</div>
-        <div style="
-          width:10px;height:10px;background:${t.color};
-          clip-path:polygon(0 0,100% 0,50% 100%);
-        "></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-100%);cursor:default;">
+        <div style="background:${t.color};color:white;font-weight:900;font-size:13px;padding:6px 14px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,0.25);white-space:nowrap;">${t.id} ${t.label}</div>
+        <div style="width:10px;height:10px;background:${t.color};clip-path:polygon(0 0,100% 0,50% 100%);"></div>
       </div>`
     const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 3 })
     overlay.setMap(map)
@@ -75,12 +69,7 @@ function placeTerminalMarkers(map: any): any[] {
 function placeUserMarker(map: any, location: { lat: number; lng: number }): any {
   const kakao = window.kakao
   const position = new kakao.maps.LatLng(location.lat, location.lng)
-  const content = `<div style="
-    width:18px;height:18px;border-radius:50%;
-    background:#3B82F6;border:3px solid #fff;
-    box-shadow:0 0 0 5px rgba(59,130,246,0.2);
-    transform:translate(-50%,-50%);
-  "></div>`
+  const content = `<div style="width:18px;height:18px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.2);transform:translate(-50%,-50%);"></div>`
   const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 5 })
   overlay.setMap(map)
   map.panTo(position)
@@ -91,20 +80,9 @@ function placeHighlightMarker(map: any, place: HighlightedPlace): any {
   const kakao = window.kakao
   const position = new kakao.maps.LatLng(place.lat, place.lng)
   const content = `
-    <div style="
-      display:flex;flex-direction:column;align-items:center;gap:3px;
-      transform:translate(-50%,-100%);
-    ">
-      <div style="
-        background:#FF5733;color:white;font-weight:900;font-size:12px;
-        padding:5px 12px;border-radius:20px;
-        box-shadow:0 3px 10px rgba(0,0,0,0.3);
-        white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;
-      ">${place.name}</div>
-      <div style="
-        width:10px;height:10px;background:#FF5733;
-        clip-path:polygon(0 0,100% 0,50% 100%);
-      "></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;transform:translate(-50%,-100%);">
+      <div style="background:#FF5733;color:white;font-weight:900;font-size:12px;padding:5px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,0.3);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${place.name}</div>
+      <div style="width:10px;height:10px;background:#FF5733;clip-path:polygon(0 0,100% 0,50% 100%);"></div>
     </div>`
   const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 10 })
   overlay.setMap(map)
@@ -113,19 +91,37 @@ function placeHighlightMarker(map: any, place: HighlightedPlace): any {
   return overlay
 }
 
-/** 공통 지도 초기화 hook 로직 */
+// 클릭 위치에 핀 표시
+function placeClickPin(map: any, lat: number, lng: number): any {
+  const kakao = window.kakao
+  const position = new kakao.maps.LatLng(lat, lng)
+  const content = `
+    <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);pointer-events:none;">
+      <div style="width:22px;height:22px;border-radius:50%;background:#E63946;border:3px solid #fff;box-shadow:0 3px 12px rgba(230,57,70,0.5);"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #E63946;margin-top:-2px;"></div>
+    </div>`
+  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 15 })
+  overlay.setMap(map)
+  return overlay
+}
+
+// ── useMapInstance hook ──────────────────────────────────────────────────────
+
 function useMapInstance(
   containerRef: React.RefObject<HTMLDivElement | null>,
   mapRef: React.MutableRefObject<any>,
   markersRef: React.MutableRefObject<any[]>,
   userMarkerRef: React.MutableRefObject<any>,
   highlightMarkerRef: React.MutableRefObject<any>,
+  clickPinRef: React.MutableRefObject<any>,
   mapLoaded: boolean,
   userLocation: { lat: number; lng: number } | null,
   highlightedPlace: HighlightedPlace | null | undefined,
+  clickedPlace: KakaoPlace | null | undefined,
   onMapClick: ((lat: number, lng: number) => void) | undefined,
   level: number,
 ) {
+  // 지도 초기화
   useEffect(() => {
     if (!mapLoaded || !containerRef.current || mapRef.current) return
     if (!window.kakao?.maps) return
@@ -133,49 +129,69 @@ function useMapInstance(
     markersRef.current = placeTerminalMarkers(mapRef.current)
   }, [mapLoaded, containerRef, mapRef, markersRef, level])
 
+  // 내 위치 마커
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
     if (userMarkerRef.current) { userMarkerRef.current.setMap(null); userMarkerRef.current = null }
     if (userLocation) userMarkerRef.current = placeUserMarker(mapRef.current, userLocation)
   }, [mapLoaded, userLocation, mapRef, userMarkerRef])
 
+  // 하이라이트 마커
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
     if (highlightMarkerRef.current) { highlightMarkerRef.current.setMap(null); highlightMarkerRef.current = null }
     if (highlightedPlace) highlightMarkerRef.current = placeHighlightMarker(mapRef.current, highlightedPlace)
   }, [mapLoaded, highlightedPlace, mapRef, highlightMarkerRef])
 
-  // 지도 클릭 이벤트 → 좌표 전달
+  // 클릭 카드가 닫히면 핀도 제거
+  useEffect(() => {
+    if (!clickedPlace && clickPinRef.current) {
+      clickPinRef.current.setMap(null)
+      clickPinRef.current = null
+    }
+  }, [clickedPlace, clickPinRef])
+
+  // 지도 클릭 → 핀 표시 + 콜백
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !window.kakao?.maps || !onMapClick) return
     const handler = (e: any) => {
       const lat: number = e.latLng.getLat()
       const lng: number = e.latLng.getLng()
+      // 이전 핀 제거 후 새 핀
+      if (clickPinRef.current) { clickPinRef.current.setMap(null); clickPinRef.current = null }
+      clickPinRef.current = placeClickPin(mapRef.current, lat, lng)
       onMapClick(lat, lng)
     }
     window.kakao.maps.event.addListener(mapRef.current, 'click', handler)
     return () => {
       if (mapRef.current) window.kakao?.maps?.event?.removeListener(mapRef.current, 'click', handler)
     }
-  }, [mapLoaded, onMapClick, mapRef])
+  }, [mapLoaded, onMapClick, mapRef, clickPinRef])
 }
 
+// ── PreviewMap ───────────────────────────────────────────────────────────────
+
 function PreviewMap({
-  userLocation, mapLoaded, onExpand, highlightedPlace, onMapClick,
+  userLocation, mapLoaded, onExpand, highlightedPlace, onMapClick, clickedPlace,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
   onExpand: () => void
   highlightedPlace?: HighlightedPlace | null
   onMapClick?: (lat: number, lng: number) => void
+  clickedPlace?: KakaoPlace | null
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef       = useRef<any>(null)
-  const markersRef   = useRef<any[]>([])
-  const userMarkerRef = useRef<any>(null)
+  const containerRef       = useRef<HTMLDivElement>(null)
+  const mapRef             = useRef<any>(null)
+  const markersRef         = useRef<any[]>([])
+  const userMarkerRef      = useRef<any>(null)
   const highlightMarkerRef = useRef<any>(null)
+  const clickPinRef        = useRef<any>(null)
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, mapLoaded, userLocation, highlightedPlace, onMapClick, 5)
+  useMapInstance(
+    containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, clickPinRef,
+    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 5,
+  )
 
   return (
     <div className="relative w-full rounded-xl overflow-hidden border border-brand-border" style={{ height: 240 }}>
@@ -202,8 +218,11 @@ function PreviewMap({
   )
 }
 
+// ── FullscreenMapModal ───────────────────────────────────────────────────────
+
 function FullscreenMapModal({
-  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose, highlightedPlace, onMapClick,
+  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose,
+  highlightedPlace, onMapClick, clickedPlace, searchingPlace, onClickedPlaceClose,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
@@ -212,14 +231,21 @@ function FullscreenMapModal({
   onClose: () => void
   highlightedPlace?: HighlightedPlace | null
   onMapClick?: (lat: number, lng: number) => void
+  clickedPlace?: KakaoPlace | null
+  searchingPlace?: boolean
+  onClickedPlaceClose?: () => void
 }) {
-  const containerRef  = useRef<HTMLDivElement>(null)
-  const mapRef        = useRef<any>(null)
-  const markersRef    = useRef<any[]>([])
-  const userMarkerRef = useRef<any>(null)
+  const containerRef       = useRef<HTMLDivElement>(null)
+  const mapRef             = useRef<any>(null)
+  const markersRef         = useRef<any[]>([])
+  const userMarkerRef      = useRef<any>(null)
   const highlightMarkerRef = useRef<any>(null)
+  const clickPinRef        = useRef<any>(null)
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, mapLoaded, userLocation, highlightedPlace, onMapClick, 5)
+  useMapInstance(
+    containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, clickPinRef,
+    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 5,
+  )
 
   useEffect(() => {
     if (mapRef.current) setTimeout(() => mapRef.current?.relayout?.(), 80)
@@ -237,7 +263,7 @@ function FullscreenMapModal({
       <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border shrink-0">
         <div>
           <p className="font-bold text-brand-black">인천공항 지도</p>
-          <p className="text-[11px] text-brand-muted mt-0.5">T1 · T2 위치 및 내 위치 확인</p>
+          <p className="text-[11px] text-brand-muted mt-0.5">가게를 클릭하면 정보를 볼 수 있어요</p>
         </div>
         <button
           onClick={onClose}
@@ -249,7 +275,7 @@ function FullscreenMapModal({
         </button>
       </div>
 
-      {/* 카테고리 칩 (시설 필터) */}
+      {/* 카테고리 칩 */}
       <div className="flex gap-2 px-4 py-2.5 overflow-x-auto shrink-0 border-b border-brand-border">
         {CATEGORY_META.map((c) => (
           <button
@@ -266,19 +292,36 @@ function FullscreenMapModal({
         ))}
       </div>
 
-      {/* 지도 */}
-      <div ref={containerRef} className="flex-1 w-full" />
+      {/* 지도 + 하단 카드 (오버레이 없음) */}
+      <div className="relative flex-1 w-full overflow-hidden">
+        <div ref={containerRef} className="w-full h-full" />
 
-      {/* 안내 */}
-      <div className="shrink-0 bg-brand-surface border-t border-brand-border px-4 py-3">
-        <p className="text-xs text-brand-muted text-center">
-          🟢 T1 제1터미널 &nbsp;·&nbsp; 🔵 T2 제2터미널 &nbsp;·&nbsp; 시설 목록은 아래 리스트에서 확인
-        </p>
+        {/* 검색 중 로딩 */}
+        {searchingPlace && (
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+            <div className="bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 shadow-lg animate-pulse">
+              <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 bg-brand-surface rounded w-1/2" />
+                <div className="h-2 bg-brand-surface rounded w-1/3" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 장소 정보 카드 */}
+        {!searchingPlace && clickedPlace && (
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+            <MapPlaceCard place={clickedPlace} onClose={onClickedPlaceClose ?? (() => {})} />
+          </div>
+        )}
       </div>
     </div>,
     document.body,
   )
 }
+
+// ── AirportMap (export) ──────────────────────────────────────────────────────
 
 export default function AirportMap({
   selectedCategory,
@@ -288,6 +331,9 @@ export default function AirportMap({
   mapStatus,
   highlightedPlace,
   onMapClick,
+  clickedPlace,
+  searchingPlace,
+  onClickedPlaceClose,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
 
@@ -342,11 +388,12 @@ export default function AirportMap({
         onExpand={() => setExpanded(true)}
         highlightedPlace={highlightedPlace}
         onMapClick={onMapClick}
+        clickedPlace={clickedPlace}
       />
 
       {/* 안내 문구 */}
       <p className="text-xs text-brand-muted text-center -mt-1">
-        지도를 확대하면 가게를 클릭할 수 있어요 · 시설 목록은 아래에서 확인
+        지도를 확대하고 가게를 클릭하면 정보가 나와요
       </p>
 
       {expanded && (
@@ -358,6 +405,9 @@ export default function AirportMap({
           onClose={() => setExpanded(false)}
           highlightedPlace={highlightedPlace}
           onMapClick={onMapClick}
+          clickedPlace={clickedPlace}
+          searchingPlace={searchingPlace}
+          onClickedPlaceClose={onClickedPlaceClose}
         />
       )}
     </>
