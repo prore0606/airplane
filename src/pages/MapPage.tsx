@@ -3,12 +3,13 @@ import TopNav from '../components/layout/TopNav'
 import AirportMap from '../components/map/AirportMap'
 import type { HighlightedPlace } from '../components/map/AirportMap'
 import FacilityDetailModal from '../components/map/FacilityDetailModal'
+import MapPlaceCard from '../components/map/MapPlaceCard'
 import ParkingNavigationModal from '../components/map/ParkingNavigationModal'
 import { useKakaoMap } from '../hooks/useKakaoMap'
 import { useParking } from '../hooks/useParking'
 import { parkingStatus } from '../services/parkingApi'
 import type { ParkingLot } from '../services/parkingApi'
-import { searchAirportFacilities } from '../services/kakaoLocalService'
+import { searchAirportFacilities, searchNearbyPlace } from '../services/kakaoLocalService'
 import type { KakaoPlace } from '../services/kakaoLocalService'
 import type { FacilityCategory } from '../data/airportFacilities'
 
@@ -64,6 +65,18 @@ export default function MapPage() {
   const highlightedPlace: HighlightedPlace | null = selectedPlace
     ? { lat: parseFloat(selectedPlace.y), lng: parseFloat(selectedPlace.x), name: selectedPlace.place_name }
     : null
+
+  // 지도 클릭 → 주변 장소 검색
+  const [mapClickedPlace, setMapClickedPlace] = useState<KakaoPlace | null>(null)
+  const [mapSearching, setMapSearching] = useState(false)
+
+  const handleMapClick = useCallback(async (lat: number, lng: number) => {
+    setMapSearching(true)
+    setMapClickedPlace(null)
+    const found = await searchNearbyPlace(lat, lng)
+    setMapClickedPlace(found)
+    setMapSearching(false)
+  }, [])
 
   const handleFacilitySelect = useCallback((place: KakaoPlace) => {
     setSelectedPlace(place)
@@ -172,9 +185,25 @@ export default function MapPage() {
                 mapLoaded={mapLoaded}
                 mapStatus={mapStatus}
                 highlightedPlace={highlightedPlace}
-                places={places}
-                onPlaceClick={handleFacilitySelect}
+                onMapClick={handleMapClick}
               />
+
+              {/* 지도 클릭 시 표시되는 장소 카드 (지도 아래, 오버레이 없음) */}
+              {mapSearching && (
+                <div className="bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-brand-surface rounded w-1/2" />
+                    <div className="h-2 bg-brand-surface rounded w-1/3" />
+                  </div>
+                </div>
+              )}
+              {!mapSearching && mapClickedPlace && (
+                <MapPlaceCard
+                  place={mapClickedPlace}
+                  onClose={() => setMapClickedPlace(null)}
+                />
+              )}
 
               {/* My location button */}
               <div className="flex items-center gap-3">

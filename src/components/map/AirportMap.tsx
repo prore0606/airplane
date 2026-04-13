@@ -37,8 +37,7 @@ interface Props {
   mapLoaded: boolean
   mapStatus: KakaoMapStatus
   highlightedPlace?: HighlightedPlace | null
-  places?: KakaoPlace[]
-  onPlaceClick?: (place: KakaoPlace) => void
+  onMapClick?: (lat: number, lng: number) => void
 }
 
 function buildMap(container: HTMLDivElement, level: number): any {
@@ -88,40 +87,6 @@ function placeUserMarker(map: any, location: { lat: number; lng: number }): any 
   return overlay
 }
 
-function placeFacilityMarkers(
-  map: any,
-  places: KakaoPlace[],
-  onPlaceClick: (place: KakaoPlace) => void,
-): any[] {
-  const kakao = window.kakao
-  return places.map((place) => {
-    const position = new kakao.maps.LatLng(parseFloat(place.y), parseFloat(place.x))
-    const label = place.place_name.length > 12
-      ? place.place_name.slice(0, 12) + '…'
-      : place.place_name
-    const content = `
-      <div style="
-        display:flex;flex-direction:column;align-items:center;gap:3px;
-        transform:translate(-50%,-100%);cursor:pointer;
-      ">
-        <div style="
-          background:#1DB954;color:white;font-weight:700;font-size:11px;
-          padding:4px 10px;border-radius:14px;
-          box-shadow:0 2px 8px rgba(0,0,0,0.25);
-          white-space:nowrap;
-        ">${label}</div>
-        <div style="
-          width:8px;height:8px;background:#1DB954;
-          clip-path:polygon(0 0,100% 0,50% 100%);
-        "></div>
-      </div>`
-    const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 4, clickable: true })
-    overlay.setMap(map)
-    kakao.maps.event.addListener(overlay, 'click', () => onPlaceClick(place))
-    return overlay
-  })
-}
-
 function placeHighlightMarker(map: any, place: HighlightedPlace): any {
   const kakao = window.kakao
   const position = new kakao.maps.LatLng(place.lat, place.lng)
@@ -155,12 +120,10 @@ function useMapInstance(
   markersRef: React.MutableRefObject<any[]>,
   userMarkerRef: React.MutableRefObject<any>,
   highlightMarkerRef: React.MutableRefObject<any>,
-  placeMarkersRef: React.MutableRefObject<any[]>,
   mapLoaded: boolean,
   userLocation: { lat: number; lng: number } | null,
   highlightedPlace: HighlightedPlace | null | undefined,
-  places: KakaoPlace[],
-  onPlaceClick: (place: KakaoPlace) => void,
+  onMapClick: ((lat: number, lng: number) => void) | undefined,
   level: number,
 ) {
   useEffect(() => {
@@ -182,34 +145,37 @@ function useMapInstance(
     if (highlightedPlace) highlightMarkerRef.current = placeHighlightMarker(mapRef.current, highlightedPlace)
   }, [mapLoaded, highlightedPlace, mapRef, highlightMarkerRef])
 
+  // 지도 클릭 이벤트 → 좌표 전달
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
-    placeMarkersRef.current.forEach((o: any) => o.setMap(null))
-    placeMarkersRef.current = []
-    if (places.length > 0) {
-      placeMarkersRef.current = placeFacilityMarkers(mapRef.current, places, onPlaceClick)
+    if (!mapLoaded || !mapRef.current || !window.kakao?.maps || !onMapClick) return
+    const handler = (e: any) => {
+      const lat: number = e.latLng.getLat()
+      const lng: number = e.latLng.getLng()
+      onMapClick(lat, lng)
     }
-  }, [mapLoaded, places, onPlaceClick, mapRef, placeMarkersRef])
+    window.kakao.maps.event.addListener(mapRef.current, 'click', handler)
+    return () => {
+      if (mapRef.current) window.kakao?.maps?.event?.removeListener(mapRef.current, 'click', handler)
+    }
+  }, [mapLoaded, onMapClick, mapRef])
 }
 
 function PreviewMap({
-  userLocation, mapLoaded, onExpand, highlightedPlace, places, onPlaceClick,
+  userLocation, mapLoaded, onExpand, highlightedPlace, onMapClick,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
   onExpand: () => void
   highlightedPlace?: HighlightedPlace | null
-  places: KakaoPlace[]
-  onPlaceClick: (place: KakaoPlace) => void
+  onMapClick?: (lat: number, lng: number) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<any>(null)
   const markersRef   = useRef<any[]>([])
   const userMarkerRef = useRef<any>(null)
   const highlightMarkerRef = useRef<any>(null)
-  const placeMarkersRef = useRef<any[]>([])
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, placeMarkersRef, mapLoaded, userLocation, highlightedPlace, places, onPlaceClick, 5)
+  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, mapLoaded, userLocation, highlightedPlace, onMapClick, 5)
 
   return (
     <div className="relative w-full rounded-xl overflow-hidden border border-brand-border" style={{ height: 240 }}>
@@ -237,7 +203,7 @@ function PreviewMap({
 }
 
 function FullscreenMapModal({
-  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose, highlightedPlace, places, onPlaceClick,
+  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose, highlightedPlace, onMapClick,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
@@ -245,17 +211,15 @@ function FullscreenMapModal({
   onCategoryChange: (cat: FacilityCategory | 'all') => void
   onClose: () => void
   highlightedPlace?: HighlightedPlace | null
-  places: KakaoPlace[]
-  onPlaceClick: (place: KakaoPlace) => void
+  onMapClick?: (lat: number, lng: number) => void
 }) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const mapRef        = useRef<any>(null)
   const markersRef    = useRef<any[]>([])
   const userMarkerRef = useRef<any>(null)
   const highlightMarkerRef = useRef<any>(null)
-  const placeMarkersRef = useRef<any[]>([])
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, placeMarkersRef, mapLoaded, userLocation, highlightedPlace, places, onPlaceClick, 5)
+  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, mapLoaded, userLocation, highlightedPlace, onMapClick, 5)
 
   useEffect(() => {
     if (mapRef.current) setTimeout(() => mapRef.current?.relayout?.(), 80)
@@ -323,8 +287,7 @@ export default function AirportMap({
   mapLoaded,
   mapStatus,
   highlightedPlace,
-  places = [],
-  onPlaceClick = () => {},
+  onMapClick,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
 
@@ -378,13 +341,12 @@ export default function AirportMap({
         mapLoaded={mapLoaded}
         onExpand={() => setExpanded(true)}
         highlightedPlace={highlightedPlace}
-        places={places}
-        onPlaceClick={onPlaceClick}
+        onMapClick={onMapClick}
       />
 
       {/* 안내 문구 */}
       <p className="text-xs text-brand-muted text-center -mt-1">
-        지도는 터미널 위치 기준 · 시설 상세는 아래 목록에서 확인
+        지도를 확대하면 가게를 클릭할 수 있어요 · 시설 목록은 아래에서 확인
       </p>
 
       {expanded && (
@@ -395,8 +357,7 @@ export default function AirportMap({
           onCategoryChange={onCategoryChange}
           onClose={() => setExpanded(false)}
           highlightedPlace={highlightedPlace}
-          places={places}
-          onPlaceClick={onPlaceClick}
+          onMapClick={onMapClick}
         />
       )}
     </>
