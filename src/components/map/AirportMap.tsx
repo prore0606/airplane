@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { FacilityCategory } from '../../data/airportFacilities'
 import type { KakaoMapStatus } from '../../hooks/useKakaoMap'
+import type { KakaoPlace } from '../../services/kakaoLocalService'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -23,12 +24,21 @@ const TERMINALS = [
 
 const AIRPORT_CENTER = { lat: 37.4602, lng: 126.4462 }
 
+export interface HighlightedPlace {
+  lat: number
+  lng: number
+  name: string
+}
+
 interface Props {
   selectedCategory: FacilityCategory | 'all'
   onCategoryChange: (cat: FacilityCategory | 'all') => void
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
   mapStatus: KakaoMapStatus
+  highlightedPlace?: HighlightedPlace | null
+  places?: KakaoPlace[]
+  onPlaceClick?: (place: KakaoPlace) => void
 }
 
 function buildMap(container: HTMLDivElement, level: number): any {
@@ -78,14 +88,79 @@ function placeUserMarker(map: any, location: { lat: number; lng: number }): any 
   return overlay
 }
 
+function placeFacilityMarkers(
+  map: any,
+  places: KakaoPlace[],
+  onPlaceClick: (place: KakaoPlace) => void,
+): any[] {
+  const kakao = window.kakao
+  return places.map((place) => {
+    const position = new kakao.maps.LatLng(parseFloat(place.y), parseFloat(place.x))
+    const label = place.place_name.length > 12
+      ? place.place_name.slice(0, 12) + '…'
+      : place.place_name
+    const content = `
+      <div style="
+        display:flex;flex-direction:column;align-items:center;gap:3px;
+        transform:translate(-50%,-100%);cursor:pointer;
+      ">
+        <div style="
+          background:#1DB954;color:white;font-weight:700;font-size:11px;
+          padding:4px 10px;border-radius:14px;
+          box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          white-space:nowrap;
+        ">${label}</div>
+        <div style="
+          width:8px;height:8px;background:#1DB954;
+          clip-path:polygon(0 0,100% 0,50% 100%);
+        "></div>
+      </div>`
+    const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 4, clickable: true })
+    overlay.setMap(map)
+    kakao.maps.event.addListener(overlay, 'click', () => onPlaceClick(place))
+    return overlay
+  })
+}
+
+function placeHighlightMarker(map: any, place: HighlightedPlace): any {
+  const kakao = window.kakao
+  const position = new kakao.maps.LatLng(place.lat, place.lng)
+  const content = `
+    <div style="
+      display:flex;flex-direction:column;align-items:center;gap:3px;
+      transform:translate(-50%,-100%);
+    ">
+      <div style="
+        background:#FF5733;color:white;font-weight:900;font-size:12px;
+        padding:5px 12px;border-radius:20px;
+        box-shadow:0 3px 10px rgba(0,0,0,0.3);
+        white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;
+      ">${place.name}</div>
+      <div style="
+        width:10px;height:10px;background:#FF5733;
+        clip-path:polygon(0 0,100% 0,50% 100%);
+      "></div>
+    </div>`
+  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 10 })
+  overlay.setMap(map)
+  map.panTo(position)
+  map.setLevel(3, { animate: true })
+  return overlay
+}
+
 /** 공통 지도 초기화 hook 로직 */
 function useMapInstance(
   containerRef: React.RefObject<HTMLDivElement | null>,
   mapRef: React.MutableRefObject<any>,
   markersRef: React.MutableRefObject<any[]>,
   userMarkerRef: React.MutableRefObject<any>,
+  highlightMarkerRef: React.MutableRefObject<any>,
+  placeMarkersRef: React.MutableRefObject<any[]>,
   mapLoaded: boolean,
   userLocation: { lat: number; lng: number } | null,
+  highlightedPlace: HighlightedPlace | null | undefined,
+  places: KakaoPlace[],
+  onPlaceClick: (place: KakaoPlace) => void,
   level: number,
 ) {
   useEffect(() => {
@@ -93,28 +168,48 @@ function useMapInstance(
     if (!window.kakao?.maps) return
     mapRef.current = buildMap(containerRef.current, level)
     markersRef.current = placeTerminalMarkers(mapRef.current)
-  }, [mapLoaded, containerRef, mapRef, markersRef, userMarkerRef, level])
+  }, [mapLoaded, containerRef, mapRef, markersRef, level])
 
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
     if (userMarkerRef.current) { userMarkerRef.current.setMap(null); userMarkerRef.current = null }
     if (userLocation) userMarkerRef.current = placeUserMarker(mapRef.current, userLocation)
   }, [mapLoaded, userLocation, mapRef, userMarkerRef])
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
+    if (highlightMarkerRef.current) { highlightMarkerRef.current.setMap(null); highlightMarkerRef.current = null }
+    if (highlightedPlace) highlightMarkerRef.current = placeHighlightMarker(mapRef.current, highlightedPlace)
+  }, [mapLoaded, highlightedPlace, mapRef, highlightMarkerRef])
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
+    placeMarkersRef.current.forEach((o: any) => o.setMap(null))
+    placeMarkersRef.current = []
+    if (places.length > 0) {
+      placeMarkersRef.current = placeFacilityMarkers(mapRef.current, places, onPlaceClick)
+    }
+  }, [mapLoaded, places, onPlaceClick, mapRef, placeMarkersRef])
 }
 
 function PreviewMap({
-  userLocation, mapLoaded, onExpand,
+  userLocation, mapLoaded, onExpand, highlightedPlace, places, onPlaceClick,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
   onExpand: () => void
+  highlightedPlace?: HighlightedPlace | null
+  places: KakaoPlace[]
+  onPlaceClick: (place: KakaoPlace) => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<any>(null)
   const markersRef   = useRef<any[]>([])
   const userMarkerRef = useRef<any>(null)
+  const highlightMarkerRef = useRef<any>(null)
+  const placeMarkersRef = useRef<any[]>([])
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, mapLoaded, userLocation, 5)
+  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, placeMarkersRef, mapLoaded, userLocation, highlightedPlace, places, onPlaceClick, 5)
 
   return (
     <div className="relative w-full rounded-xl overflow-hidden border border-brand-border" style={{ height: 240 }}>
@@ -142,20 +237,25 @@ function PreviewMap({
 }
 
 function FullscreenMapModal({
-  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose,
+  userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose, highlightedPlace, places, onPlaceClick,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
   selectedCategory: FacilityCategory | 'all'
   onCategoryChange: (cat: FacilityCategory | 'all') => void
   onClose: () => void
+  highlightedPlace?: HighlightedPlace | null
+  places: KakaoPlace[]
+  onPlaceClick: (place: KakaoPlace) => void
 }) {
   const containerRef  = useRef<HTMLDivElement>(null)
   const mapRef        = useRef<any>(null)
   const markersRef    = useRef<any[]>([])
   const userMarkerRef = useRef<any>(null)
+  const highlightMarkerRef = useRef<any>(null)
+  const placeMarkersRef = useRef<any[]>([])
 
-  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, mapLoaded, userLocation, 5)
+  useMapInstance(containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, placeMarkersRef, mapLoaded, userLocation, highlightedPlace, places, onPlaceClick, 5)
 
   useEffect(() => {
     if (mapRef.current) setTimeout(() => mapRef.current?.relayout?.(), 80)
@@ -222,6 +322,9 @@ export default function AirportMap({
   userLocation,
   mapLoaded,
   mapStatus,
+  highlightedPlace,
+  places = [],
+  onPlaceClick = () => {},
 }: Props) {
   const [expanded, setExpanded] = useState(false)
 
@@ -274,6 +377,9 @@ export default function AirportMap({
         userLocation={userLocation}
         mapLoaded={mapLoaded}
         onExpand={() => setExpanded(true)}
+        highlightedPlace={highlightedPlace}
+        places={places}
+        onPlaceClick={onPlaceClick}
       />
 
       {/* 안내 문구 */}
@@ -288,6 +394,9 @@ export default function AirportMap({
           selectedCategory={selectedCategory}
           onCategoryChange={onCategoryChange}
           onClose={() => setExpanded(false)}
+          highlightedPlace={highlightedPlace}
+          places={places}
+          onPlaceClick={onPlaceClick}
         />
       )}
     </>
