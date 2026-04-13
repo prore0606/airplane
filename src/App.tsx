@@ -11,6 +11,7 @@ import MapPage from './pages/MapPage'
 import MyPage from './pages/MyPage'
 import LoginPage from './pages/LoginPage'
 import GateFloatingButton from './components/GateFloatingButton'
+import AirportChatbot from './components/chat/AirportChatbot'
 import './App.css'
 
 const PAGES: Record<TabId, ReactElement> = {
@@ -53,6 +54,7 @@ function AppShell() {
           <main className="flex-1 flex flex-col overflow-hidden relative">
             {PAGES[tab]}
             <GateFloatingButton />
+            <AirportChatbot />
           </main>
           <BottomTab active={tab} onChange={setTab} />
         </div>
