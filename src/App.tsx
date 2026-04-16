@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ReactElement } from 'react'
 import BottomTab, { type TabId } from './components/layout/BottomTab'
+import SideNav from './components/layout/SideNav'
 import { JourneyProvider } from './context/JourneyContext'
 import { FlightProvider } from './context/FlightContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -50,13 +51,25 @@ function AppShell() {
   return (
     <JourneyProvider>
       <FlightProvider>
-        <div className="flex flex-col h-screen bg-brand-surface">
-          <main className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="flex flex-col md:flex-row h-screen bg-brand-surface overflow-hidden">
+
+          {/* 데스크탑: 왼쪽 사이드바 */}
+          <div className="hidden md:block shrink-0">
+            <SideNav active={tab} onChange={setTab} />
+          </div>
+
+          {/* 콘텐츠 영역 */}
+          <main className="flex-1 flex flex-col overflow-hidden relative min-w-0">
             {PAGES[tab]}
             <GateFloatingButton />
             <AirportChatbot />
           </main>
-          <BottomTab active={tab} onChange={setTab} />
+
+          {/* 모바일: 하단 탭 */}
+          <div className="md:hidden shrink-0">
+            <BottomTab active={tab} onChange={setTab} />
+          </div>
+
         </div>
       </FlightProvider>
     </JourneyProvider>
