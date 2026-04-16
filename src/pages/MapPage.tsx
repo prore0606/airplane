@@ -73,16 +73,16 @@ export default function MapPage() {
 
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
     setMapSearching(true)
-    setMapClickedPlace(null)
     setMapNotFound(false)
+    // clickedPlace는 null로 초기화하지 않음 → "핀 제거" effect가 즉시 실행되는 것 방지
     const found = await searchNearbyPlace(lat, lng)
+    setMapSearching(false)
     if (found) {
       setMapClickedPlace(found)
-      setMapNotFound(false)
     } else {
+      setMapClickedPlace(null)
       setMapNotFound(true)
     }
-    setMapSearching(false)
   }, [])
 
   const handleFacilitySelect = useCallback((place: KakaoPlace) => {

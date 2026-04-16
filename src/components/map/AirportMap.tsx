@@ -101,7 +101,7 @@ function placeClickPin(map: any, lat: number, lng: number): any {
       <div style="width:22px;height:22px;border-radius:50%;background:#E63946;border:3px solid #fff;box-shadow:0 3px 12px rgba(230,57,70,0.5);"></div>
       <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #E63946;margin-top:-2px;"></div>
     </div>`
-  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 15 })
+  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 999 })
   overlay.setMap(map)
   return overlay
 }
@@ -337,7 +337,7 @@ function FullscreenMapModal({
 
         {/* 검색 중 로딩 */}
         {searchingPlace && (
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2" style={{ zIndex: 9999 }}>
             <div className="bg-white border border-brand-border rounded-2xl p-4 flex items-center gap-3 shadow-lg animate-pulse">
               <div className="w-10 h-10 rounded-xl bg-brand-surface shrink-0" />
               <div className="flex-1 space-y-2">
@@ -350,14 +350,14 @@ function FullscreenMapModal({
 
         {/* 장소 정보 카드 */}
         {!searchingPlace && clickedPlace && (
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2" style={{ zIndex: 9999 }}>
             <MapPlaceCard place={clickedPlace} onClose={onClickedPlaceClose ?? (() => {})} />
           </div>
         )}
 
         {/* 근처 장소 없음 */}
         {!searchingPlace && !clickedPlace && notFound && (
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2" style={{ zIndex: 9999 }}>
             <div className="bg-white/90 backdrop-blur-sm border border-brand-border rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
               <p className="text-sm text-brand-muted">📍 근처에 등록된 장소가 없어요</p>
               <button onClick={onClickedPlaceClose} className="text-xs text-brand-muted hover:text-brand-ink">✕</button>
