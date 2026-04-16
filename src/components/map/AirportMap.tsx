@@ -180,18 +180,20 @@ function useMapInstance(
     kakao.maps.event.addListener(map, 'click', kakaoClickHandler)
 
     // DOM capture: Kakao가 가로채는 POI 타일 클릭도 캡처 (capturing phase)
+    // fromContainerPixelToCoords 대신 map.getBounds()로 직접 보간
     const domClickHandler = (e: MouseEvent) => {
-      if (!mapRef.current || !window.kakao?.maps) return
+      if (!mapRef.current) return
       try {
         const rect = container.getBoundingClientRect()
         const px = e.clientX - rect.left
         const py = e.clientY - rect.top
-        console.log('[MapClick] DOM capture fired at px=', px, 'py=', py)
-        const point = new window.kakao.maps.Point(px, py)
-        const proj = mapRef.current.getProjection()
-        const latLng = proj.fromContainerPixelToCoords(point)
-        console.log('[MapClick] coords lat=', latLng.getLat(), 'lng=', latLng.getLng())
-        fireClick(latLng.getLat(), latLng.getLng())
+        const bounds = mapRef.current.getBounds()
+        const sw = bounds.getSouthWest()
+        const ne = bounds.getNorthEast()
+        const lng = sw.getLng() + (px / rect.width) * (ne.getLng() - sw.getLng())
+        const lat = ne.getLat() - (py / rect.height) * (ne.getLat() - sw.getLat())
+        console.log('[MapClick] DOM capture lat=', lat, 'lng=', lng)
+        fireClick(lat, lng)
       } catch (err) {
         console.error('[MapClick] coord conversion failed:', err)
       }
