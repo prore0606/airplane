@@ -64,7 +64,7 @@ export async function searchNearbyPlace(lat: number, lng: number): Promise<Kakao
     return all[0]
   }
 
-  return (await search(30)) ?? (await search(80))
+  return (await search(100)) ?? (await search(400))
 }
 
 export async function searchAirportFacilities(

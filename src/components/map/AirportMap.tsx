@@ -40,6 +40,7 @@ interface Props {
   onMapClick?: (lat: number, lng: number) => void
   clickedPlace?: KakaoPlace | null
   searchingPlace?: boolean
+  notFound?: boolean
   onClickedPlaceClose?: () => void
 }
 
@@ -151,22 +152,25 @@ function useMapInstance(
     }
   }, [clickedPlace, clickPinRef])
 
-  // 지도 클릭 → 핀 표시 + 콜백
+  // DOM click → Kakao projection으로 lat/lng 변환 → 핀 + 콜백
+  // Kakao SDK click 이벤트는 타일 POI 클릭 시 발화하지 않으므로 DOM 레벨 사용
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.kakao?.maps || !onMapClick) return
-    const handler = (e: any) => {
-      const lat: number = e.latLng.getLat()
-      const lng: number = e.latLng.getLng()
-      // 이전 핀 제거 후 새 핀
+    if (!mapLoaded || !containerRef.current || !mapRef.current || !window.kakao?.maps || !onMapClick) return
+    const container = containerRef.current
+    const handler = (e: MouseEvent) => {
+      if (!mapRef.current || !window.kakao?.maps) return
+      const rect = container.getBoundingClientRect()
+      const point = new window.kakao.maps.Point(e.clientX - rect.left, e.clientY - rect.top)
+      const latLng = mapRef.current.getProjection().fromContainerPixelToCoords(point)
+      const lat: number = latLng.getLat()
+      const lng: number = latLng.getLng()
       if (clickPinRef.current) { clickPinRef.current.setMap(null); clickPinRef.current = null }
       clickPinRef.current = placeClickPin(mapRef.current, lat, lng)
       onMapClick(lat, lng)
     }
-    window.kakao.maps.event.addListener(mapRef.current, 'click', handler)
-    return () => {
-      if (mapRef.current) window.kakao?.maps?.event?.removeListener(mapRef.current, 'click', handler)
-    }
-  }, [mapLoaded, onMapClick, mapRef, clickPinRef])
+    container.addEventListener('click', handler)
+    return () => container.removeEventListener('click', handler)
+  }, [mapLoaded, onMapClick, mapRef, containerRef, clickPinRef])
 }
 
 // ── PreviewMap ───────────────────────────────────────────────────────────────
@@ -222,7 +226,7 @@ function PreviewMap({
 
 function FullscreenMapModal({
   userLocation, mapLoaded, selectedCategory, onCategoryChange, onClose,
-  highlightedPlace, onMapClick, clickedPlace, searchingPlace, onClickedPlaceClose,
+  highlightedPlace, onMapClick, clickedPlace, searchingPlace, notFound, onClickedPlaceClose,
 }: {
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
@@ -233,6 +237,7 @@ function FullscreenMapModal({
   onMapClick?: (lat: number, lng: number) => void
   clickedPlace?: KakaoPlace | null
   searchingPlace?: boolean
+  notFound?: boolean
   onClickedPlaceClose?: () => void
 }) {
   const containerRef       = useRef<HTMLDivElement>(null)
@@ -315,6 +320,16 @@ function FullscreenMapModal({
             <MapPlaceCard place={clickedPlace} onClose={onClickedPlaceClose ?? (() => {})} />
           </div>
         )}
+
+        {/* 근처 장소 없음 */}
+        {!searchingPlace && !clickedPlace && notFound && (
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-2">
+            <div className="bg-white/90 backdrop-blur-sm border border-brand-border rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
+              <p className="text-sm text-brand-muted">📍 근처에 등록된 장소가 없어요</p>
+              <button onClick={onClickedPlaceClose} className="text-xs text-brand-muted hover:text-brand-ink">✕</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body,
@@ -333,6 +348,7 @@ export default function AirportMap({
   onMapClick,
   clickedPlace,
   searchingPlace,
+  notFound,
   onClickedPlaceClose,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
@@ -407,6 +423,7 @@ export default function AirportMap({
           onMapClick={onMapClick}
           clickedPlace={clickedPlace}
           searchingPlace={searchingPlace}
+          notFound={notFound}
           onClickedPlaceClose={onClickedPlaceClose}
         />
       )}
