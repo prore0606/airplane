@@ -5,7 +5,7 @@ import type { HighlightedPlace } from '../components/map/AirportMap'
 import FacilityDetailModal from '../components/map/FacilityDetailModal'
 import MapPlaceCard from '../components/map/MapPlaceCard'
 import ParkingNavigationModal from '../components/map/ParkingNavigationModal'
-import { useKakaoMap } from '../hooks/useKakaoMap'
+import { useNaverMap } from '../hooks/useNaverMap'
 import { useParking } from '../hooks/useParking'
 import { parkingStatus } from '../services/parkingApi'
 import type { ParkingLot } from '../services/parkingApi'
@@ -57,9 +57,9 @@ export default function MapPage() {
   const [saving, setSaving] = useState(false)
   const { data: parkingLots, loading: parkingLoading } = useParking()
 
-  // Kakao Maps SDK
-  const kakaoAppKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined
-  const { loaded: mapLoaded, status: mapStatus } = useKakaoMap(kakaoAppKey)
+  // Naver Maps SDK
+  const naverClientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID as string | undefined
+  const { loaded: mapLoaded, status: mapStatus } = useNaverMap(naverClientId)
 
   // 지도에 하이라이트할 장소
   const highlightedPlace: HighlightedPlace | null = selectedPlace
@@ -155,14 +155,14 @@ export default function MapPage() {
             <div className="space-y-4">
 
               {/* API key warning */}
-              {!kakaoAppKey && (
+              {!naverClientId && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-                  <p className="font-bold text-amber-800">🗺️ 카카오맵 API 키 설정 필요</p>
+                  <p className="font-bold text-amber-800">🗺️ 네이버 지도 API 키 설정 필요</p>
                   <p className="text-amber-700 mt-1">
-                    .env.local에 VITE_KAKAO_MAP_KEY=발급받은키 를 추가하세요
+                    .env.local에 VITE_NAVER_MAP_CLIENT_ID=발급받은키 를 추가하세요
                   </p>
                   <p className="text-xs text-amber-600 mt-2">
-                    developers.kakao.com → 앱 생성 → JavaScript 키
+                    console.ncloud.com → Application → Maps → Client ID
                   </p>
                 </div>
               )}

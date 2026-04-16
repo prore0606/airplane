@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { FacilityCategory } from '../../data/airportFacilities'
-import type { KakaoMapStatus } from '../../hooks/useKakaoMap'
+import type { NaverMapStatus } from '../../hooks/useNaverMap'
 import type { KakaoPlace } from '../../services/kakaoLocalService'
 import MapPlaceCard from './MapPlaceCard'
 
@@ -35,7 +35,7 @@ interface Props {
   onCategoryChange: (cat: FacilityCategory | 'all') => void
   userLocation: { lat: number; lng: number } | null
   mapLoaded: boolean
-  mapStatus: KakaoMapStatus
+  mapStatus: NaverMapStatus
   highlightedPlace?: HighlightedPlace | null
   onMapClick?: (lat: number, lng: number) => void
   clickedPlace?: KakaoPlace | null
@@ -46,64 +46,78 @@ interface Props {
 
 // ── 맵 헬퍼 함수들 ──────────────────────────────────────────────────────────
 
-function buildMap(container: HTMLDivElement, level: number): any {
-  const kakao = window.kakao
-  const center = new kakao.maps.LatLng(AIRPORT_CENTER.lat, AIRPORT_CENTER.lng)
-  return new kakao.maps.Map(container, { center, level })
+function buildMap(container: HTMLDivElement, zoom: number): any {
+  const naver = window.naver
+  return new naver.maps.Map(container, {
+    center: new naver.maps.LatLng(AIRPORT_CENTER.lat, AIRPORT_CENTER.lng),
+    zoom,
+    mapTypeId: naver.maps.MapTypeId.NORMAL,
+  })
 }
 
 function placeTerminalMarkers(map: any): any[] {
-  const kakao = window.kakao
+  const naver = window.naver
   return TERMINALS.map((t) => {
-    const position = new kakao.maps.LatLng(t.lat, t.lng)
     const content = `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-100%);cursor:default;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;transform:translate(-50%,-100%);pointer-events:none;">
         <div style="background:${t.color};color:white;font-weight:900;font-size:13px;padding:6px 14px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,0.25);white-space:nowrap;">${t.id} ${t.label}</div>
         <div style="width:10px;height:10px;background:${t.color};clip-path:polygon(0 0,100% 0,50% 100%);"></div>
       </div>`
-    const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 3 })
-    overlay.setMap(map)
-    return overlay
+    return new naver.maps.Marker({
+      position: new naver.maps.LatLng(t.lat, t.lng),
+      map,
+      icon: { content, anchor: new naver.maps.Point(0, 0) },
+      clickable: false,
+    })
   })
 }
 
 function placeUserMarker(map: any, location: { lat: number; lng: number }): any {
-  const kakao = window.kakao
-  const position = new kakao.maps.LatLng(location.lat, location.lng)
+  const naver = window.naver
   const content = `<div style="width:18px;height:18px;border-radius:50%;background:#3B82F6;border:3px solid #fff;box-shadow:0 0 0 5px rgba(59,130,246,0.2);transform:translate(-50%,-50%);"></div>`
-  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 5 })
-  overlay.setMap(map)
-  map.panTo(position)
-  return overlay
+  const marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng(location.lat, location.lng),
+    map,
+    icon: { content, anchor: new naver.maps.Point(0, 0) },
+    clickable: false,
+  })
+  map.panTo(new naver.maps.LatLng(location.lat, location.lng))
+  return marker
 }
 
 function placeHighlightMarker(map: any, place: HighlightedPlace): any {
-  const kakao = window.kakao
-  const position = new kakao.maps.LatLng(place.lat, place.lng)
+  const naver = window.naver
   const content = `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;transform:translate(-50%,-100%);">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;transform:translate(-50%,-100%);pointer-events:none;">
       <div style="background:#FF5733;color:white;font-weight:900;font-size:12px;padding:5px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,0.3);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${place.name}</div>
       <div style="width:10px;height:10px;background:#FF5733;clip-path:polygon(0 0,100% 0,50% 100%);"></div>
     </div>`
-  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 10 })
-  overlay.setMap(map)
-  map.panTo(position)
-  map.setLevel(3, { animate: true })
-  return overlay
+  const marker = new naver.maps.Marker({
+    position: new naver.maps.LatLng(place.lat, place.lng),
+    map,
+    icon: { content, anchor: new naver.maps.Point(0, 0) },
+    clickable: false,
+    zIndex: 10,
+  })
+  map.panTo(new naver.maps.LatLng(place.lat, place.lng))
+  map.setZoom(17, true)
+  return marker
 }
 
-// 클릭 위치에 핀 표시
 function placeClickPin(map: any, lat: number, lng: number): any {
-  const kakao = window.kakao
-  const position = new kakao.maps.LatLng(lat, lng)
+  const naver = window.naver
   const content = `
     <div style="display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);pointer-events:none;">
       <div style="width:22px;height:22px;border-radius:50%;background:#E63946;border:3px solid #fff;box-shadow:0 3px 12px rgba(230,57,70,0.5);"></div>
       <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:10px solid #E63946;margin-top:-2px;"></div>
     </div>`
-  const overlay = new kakao.maps.CustomOverlay({ position, content, zIndex: 999 })
-  overlay.setMap(map)
-  return overlay
+  return new naver.maps.Marker({
+    position: new naver.maps.LatLng(lat, lng),
+    map,
+    icon: { content, anchor: new naver.maps.Point(0, 0) },
+    clickable: false,
+    zIndex: 999,
+  })
 }
 
 // ── useMapInstance hook ──────────────────────────────────────────────────────
@@ -120,31 +134,31 @@ function useMapInstance(
   highlightedPlace: HighlightedPlace | null | undefined,
   clickedPlace: KakaoPlace | null | undefined,
   onMapClick: ((lat: number, lng: number) => void) | undefined,
-  level: number,
+  zoom: number,
 ) {
   // 지도 초기화
   useEffect(() => {
     if (!mapLoaded || !containerRef.current || mapRef.current) return
-    if (!window.kakao?.maps) return
-    mapRef.current = buildMap(containerRef.current, level)
+    if (!window.naver?.maps) return
+    mapRef.current = buildMap(containerRef.current, zoom)
     markersRef.current = placeTerminalMarkers(mapRef.current)
-  }, [mapLoaded, containerRef, mapRef, markersRef, level])
+  }, [mapLoaded, containerRef, mapRef, markersRef, zoom])
 
   // 내 위치 마커
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
+    if (!mapLoaded || !mapRef.current || !window.naver?.maps) return
     if (userMarkerRef.current) { userMarkerRef.current.setMap(null); userMarkerRef.current = null }
     if (userLocation) userMarkerRef.current = placeUserMarker(mapRef.current, userLocation)
   }, [mapLoaded, userLocation, mapRef, userMarkerRef])
 
   // 하이라이트 마커
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.kakao?.maps) return
+    if (!mapLoaded || !mapRef.current || !window.naver?.maps) return
     if (highlightMarkerRef.current) { highlightMarkerRef.current.setMap(null); highlightMarkerRef.current = null }
     if (highlightedPlace) highlightMarkerRef.current = placeHighlightMarker(mapRef.current, highlightedPlace)
   }, [mapLoaded, highlightedPlace, mapRef, highlightMarkerRef])
 
-  // 클릭 카드가 닫히면 핀도 제거
+  // 카드 닫힐 때 핀 제거
   useEffect(() => {
     if (!clickedPlace && clickPinRef.current) {
       clickPinRef.current.setMap(null)
@@ -152,59 +166,24 @@ function useMapInstance(
     }
   }, [clickedPlace, clickPinRef])
 
-  // 클릭 처리:
-  // 1) Kakao SDK 'click' → 빈 맵 영역 클릭 시 정확한 좌표 제공
-  // 2) DOM capture 'click' → Kakao가 내부 처리하는 POI 타일 클릭도 잡음
-  // 두 이벤트가 동시에 발화하지 않도록 200ms 내 중복 제거
+  // 네이버 지도 click 이벤트 — POI 타일 포함 모든 클릭에서 발화
   useEffect(() => {
-    if (!mapLoaded || !containerRef.current || !mapRef.current || !window.kakao?.maps || !onMapClick) return
-    const container = containerRef.current
+    if (!mapLoaded || !mapRef.current || !window.naver?.maps || !onMapClick) return
     const map = mapRef.current
-    const kakao = window.kakao
-    let lastFiredAt = 0
+    const naver = window.naver
 
-    const fireClick = (lat: number, lng: number) => {
-      const now = Date.now()
-      if (now - lastFiredAt < 200) return
-      lastFiredAt = now
+    const listener = naver.maps.Event.addListener(map, 'click', (e: any) => {
+      const lat: number = e.coord.lat()
+      const lng: number = e.coord.lng()
       if (clickPinRef.current) { clickPinRef.current.setMap(null); clickPinRef.current = null }
       clickPinRef.current = placeClickPin(map, lat, lng)
       onMapClick(lat, lng)
-    }
-
-    // Kakao SDK click: 빈 지도 영역 클릭 시 발화 (좌표 정확)
-    const kakaoClickHandler = (mouseEvent: any) => {
-      console.log('[MapClick] Kakao SDK click fired', mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng())
-      fireClick(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng())
-    }
-    kakao.maps.event.addListener(map, 'click', kakaoClickHandler)
-
-    // DOM capture: Kakao가 가로채는 POI 타일 클릭도 캡처 (capturing phase)
-    // fromContainerPixelToCoords 대신 map.getBounds()로 직접 보간
-    const domClickHandler = (e: MouseEvent) => {
-      if (!mapRef.current) return
-      try {
-        const rect = container.getBoundingClientRect()
-        const px = e.clientX - rect.left
-        const py = e.clientY - rect.top
-        const bounds = mapRef.current.getBounds()
-        const sw = bounds.getSouthWest()
-        const ne = bounds.getNorthEast()
-        const lng = sw.getLng() + (px / rect.width) * (ne.getLng() - sw.getLng())
-        const lat = ne.getLat() - (py / rect.height) * (ne.getLat() - sw.getLat())
-        console.log('[MapClick] DOM capture lat=', lat, 'lng=', lng)
-        fireClick(lat, lng)
-      } catch (err) {
-        console.error('[MapClick] coord conversion failed:', err)
-      }
-    }
-    container.addEventListener('click', domClickHandler, true)
+    })
 
     return () => {
-      kakao.maps.event.removeListener(map, 'click', kakaoClickHandler)
-      container.removeEventListener('click', domClickHandler, true)
+      naver.maps.Event.removeListener(listener)
     }
-  }, [mapLoaded, onMapClick, mapRef, containerRef, clickPinRef])
+  }, [mapLoaded, onMapClick, mapRef, clickPinRef])
 }
 
 // ── PreviewMap ───────────────────────────────────────────────────────────────
@@ -228,7 +207,7 @@ function PreviewMap({
 
   useMapInstance(
     containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, clickPinRef,
-    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 5,
+    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 14,
   )
 
   return (
@@ -243,7 +222,6 @@ function PreviewMap({
         </svg>
         확대
       </button>
-      {/* 범례 */}
       <div className="absolute bottom-3 left-3 z-10 flex gap-2">
         {TERMINALS.map((t) => (
           <div key={t.id} className="flex items-center gap-1 bg-white/90 rounded-lg px-2 py-1 text-[10px] font-bold shadow-sm">
@@ -283,11 +261,18 @@ function FullscreenMapModal({
 
   useMapInstance(
     containerRef, mapRef, markersRef, userMarkerRef, highlightMarkerRef, clickPinRef,
-    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 5,
+    mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick, 14,
   )
 
+  // 모달 열릴 때 지도 크기 재계산
   useEffect(() => {
-    if (mapRef.current) setTimeout(() => mapRef.current?.relayout?.(), 80)
+    if (mapRef.current) {
+      setTimeout(() => {
+        if (mapRef.current && window.naver?.maps) {
+          window.naver.maps.Event.trigger(mapRef.current, 'resize')
+        }
+      }, 100)
+    }
   }, [])
 
   useEffect(() => {
@@ -331,7 +316,7 @@ function FullscreenMapModal({
         ))}
       </div>
 
-      {/* 지도 + 하단 카드 (오버레이 없음) */}
+      {/* 지도 + 하단 카드 */}
       <div className="relative flex-1 w-full overflow-hidden">
         <div ref={containerRef} className="w-full h-full" />
 
@@ -400,12 +385,12 @@ export default function AirportMap({
         {mapStatus === 'error' && (
           <><div className="text-3xl">⚠️</div>
           <p className="text-sm font-semibold text-brand-red">지도 로드 실패</p>
-          <p className="text-xs text-brand-muted">카카오 개발자 센터 → 플랫폼 → Web에<br/><b>http://localhost:5173</b> 등록 필요</p></>
+          <p className="text-xs text-brand-muted">네이버 클라우드 플랫폼에서<br/>Web 서비스 URL을 등록해주세요</p></>
         )}
         {mapStatus === 'idle' && (
           <><div className="text-3xl">🗺️</div>
-          <p className="text-sm font-semibold text-brand-muted">카카오맵 API 키 필요</p>
-          <p className="text-xs text-brand-muted">.env.local에 VITE_KAKAO_MAP_KEY 추가 후<br/>개발 서버를 재시작하세요</p></>
+          <p className="text-sm font-semibold text-brand-muted">네이버 지도 API 키 필요</p>
+          <p className="text-xs text-brand-muted">.env.local에 VITE_NAVER_MAP_CLIENT_ID 추가 후<br/>개발 서버를 재시작하세요</p></>
         )}
       </div>
     )
@@ -441,7 +426,6 @@ export default function AirportMap({
         clickedPlace={clickedPlace}
       />
 
-      {/* 안내 문구 */}
       <p className="text-xs text-brand-muted text-center -mt-1">
         지도를 확대하고 가게를 클릭하면 정보가 나와요
       </p>
