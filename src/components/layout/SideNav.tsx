@@ -15,7 +15,7 @@ type Props = {
 
 export default function SideNav({ active, onChange }: Props) {
   return (
-    <aside className="w-56 shrink-0 bg-white border-r border-brand-border flex flex-col min-h-screen sticky top-0">
+    <aside className="w-56 shrink-0 bg-white border-r border-brand-border flex flex-col h-full overflow-y-auto">
       {/* 로고 */}
       <div className="flex items-center gap-2 px-6 py-6 border-b border-brand-border">
         <div className="w-8 h-8 rounded-lg bg-brand-green flex items-center justify-center text-white text-base">

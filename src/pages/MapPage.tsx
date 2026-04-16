@@ -69,12 +69,19 @@ export default function MapPage() {
   // 지도 클릭 → 주변 장소 검색
   const [mapClickedPlace, setMapClickedPlace] = useState<KakaoPlace | null>(null)
   const [mapSearching, setMapSearching] = useState(false)
+  const [mapNotFound, setMapNotFound] = useState(false)
 
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
     setMapSearching(true)
     setMapClickedPlace(null)
+    setMapNotFound(false)
     const found = await searchNearbyPlace(lat, lng)
-    setMapClickedPlace(found)
+    if (found) {
+      setMapClickedPlace(found)
+      setMapNotFound(false)
+    } else {
+      setMapNotFound(true)
+    }
     setMapSearching(false)
   }, [])
 
@@ -188,7 +195,8 @@ export default function MapPage() {
                 onMapClick={handleMapClick}
                 clickedPlace={mapClickedPlace}
                 searchingPlace={mapSearching}
-                onClickedPlaceClose={() => setMapClickedPlace(null)}
+                notFound={mapNotFound}
+                onClickedPlaceClose={() => { setMapClickedPlace(null); setMapNotFound(false) }}
               />
 
               {/* 미리보기 지도 아래 장소 카드 */}
@@ -204,8 +212,17 @@ export default function MapPage() {
               {!mapSearching && mapClickedPlace && (
                 <MapPlaceCard
                   place={mapClickedPlace}
-                  onClose={() => setMapClickedPlace(null)}
+                  onClose={() => { setMapClickedPlace(null); setMapNotFound(false) }}
                 />
+              )}
+              {!mapSearching && mapNotFound && (
+                <div className="bg-brand-surface border border-brand-border rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <p className="text-sm text-brand-muted">📍 근처에 등록된 장소가 없어요</p>
+                  <button
+                    onClick={() => setMapNotFound(false)}
+                    className="text-xs text-brand-muted hover:text-brand-ink"
+                  >✕</button>
+                </div>
               )}
 
               {/* My location button */}
