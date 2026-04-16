@@ -30,41 +30,81 @@ const CATEGORY_SEARCH: Record<string, { code?: string; keyword?: string }> = {
   shopping: { keyword: '인천공항 쇼핑' },
 }
 
-// 지도 클릭 좌표 근처 장소 검색 (카테고리 코드 병렬 탐색)
-const NEARBY_CATEGORY_CODES = ['FD6', 'CE7', 'CS2', 'HP8', 'PM9', 'BK9', 'OL7', 'AT4', 'SW8']
+// 지도 클릭 좌표 근처 장소 검색
+// FD6=음식점 CE7=카페 CS2=편의점 MT1=대형마트/면세점 CT1=문화시설
+// AT4=관광명소 BK9=은행 PM9=약국 HP8=병원 AD5=숙박
+const NEARBY_CATEGORY_CODES = ['FD6', 'CE7', 'CS2', 'MT1', 'CT1', 'AT4', 'BK9', 'PM9', 'HP8', 'AD5']
+
+async function searchByCategory(lat: number, lng: number, radius: number): Promise<KakaoPlace | null> {
+  const results = await Promise.all(
+    NEARBY_CATEGORY_CODES.map(async (code) => {
+      const params = new URLSearchParams({
+        category_group_code: code,
+        x: String(lng),
+        y: String(lat),
+        radius: String(radius),
+        size: '3',
+        sort: 'distance',
+      })
+      try {
+        const res = await fetch(
+          `https://dapi.kakao.com/v2/local/search/category.json?${params}`,
+          { headers: { Authorization: `KakaoAK ${REST_KEY}` } },
+        )
+        if (!res.ok) return []
+        const data = await res.json()
+        return (data.documents ?? []) as KakaoPlace[]
+      } catch {
+        return []
+      }
+    }),
+  )
+  const all = results.flat()
+  if (all.length === 0) return null
+  all.sort((a, b) => Number(a.distance) - Number(b.distance))
+  return all[0]
+}
+
+async function searchByKeyword(lat: number, lng: number, keyword: string, radius: number): Promise<KakaoPlace | null> {
+  const params = new URLSearchParams({
+    query: keyword,
+    x: String(lng),
+    y: String(lat),
+    radius: String(radius),
+    size: '5',
+    sort: 'distance',
+  })
+  try {
+    const res = await fetch(
+      `https://dapi.kakao.com/v2/local/search/keyword.json?${params}`,
+      { headers: { Authorization: `KakaoAK ${REST_KEY}` } },
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const places = (data.documents ?? []) as KakaoPlace[]
+    return places.length > 0 ? places[0] : null
+  } catch {
+    return null
+  }
+}
 
 export async function searchNearbyPlace(lat: number, lng: number): Promise<KakaoPlace | null> {
-  const search = async (radius: number): Promise<KakaoPlace | null> => {
-    const results = await Promise.all(
-      NEARBY_CATEGORY_CODES.map(async (code) => {
-        const params = new URLSearchParams({
-          category_group_code: code,
-          x: String(lng),
-          y: String(lat),
-          radius: String(radius),
-          size: '1',
-          sort: 'distance',
-        })
-        try {
-          const res = await fetch(
-            `https://dapi.kakao.com/v2/local/search/category.json?${params}`,
-            { headers: { Authorization: `KakaoAK ${REST_KEY}` } },
-          )
-          if (!res.ok) return []
-          const data = await res.json()
-          return (data.documents ?? []) as KakaoPlace[]
-        } catch {
-          return []
-        }
-      }),
-    )
-    const all = results.flat()
-    if (all.length === 0) return null
-    all.sort((a, b) => Number(a.distance) - Number(b.distance))
-    return all[0]
-  }
+  console.log('[searchNearbyPlace] searching lat=', lat, 'lng=', lng)
 
-  return (await search(150)) ?? (await search(500)) ?? (await search(1000))
+  // 1단계: 가까운 반경 카테고리 검색
+  const r1 = await searchByCategory(lat, lng, 200)
+  if (r1) { console.log('[searchNearbyPlace] found by category 200m:', r1.place_name); return r1 }
+
+  // 2단계: 더 넓은 반경 카테고리 검색
+  const r2 = await searchByCategory(lat, lng, 700)
+  if (r2) { console.log('[searchNearbyPlace] found by category 700m:', r2.place_name); return r2 }
+
+  // 3단계: 키워드 "인천공항"으로 주변 검색 (터미널 내 모든 시설 포함)
+  const r3 = await searchByKeyword(lat, lng, '인천공항', 1500)
+  if (r3) { console.log('[searchNearbyPlace] found by keyword:', r3.place_name); return r3 }
+
+  console.log('[searchNearbyPlace] nothing found')
+  return null
 }
 
 export async function searchAirportFacilities(

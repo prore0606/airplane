@@ -174,6 +174,7 @@ function useMapInstance(
 
     // Kakao SDK click: 빈 지도 영역 클릭 시 발화 (좌표 정확)
     const kakaoClickHandler = (mouseEvent: any) => {
+      console.log('[MapClick] Kakao SDK click fired', mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng())
       fireClick(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng())
     }
     kakao.maps.event.addListener(map, 'click', kakaoClickHandler)
@@ -181,10 +182,19 @@ function useMapInstance(
     // DOM capture: Kakao가 가로채는 POI 타일 클릭도 캡처 (capturing phase)
     const domClickHandler = (e: MouseEvent) => {
       if (!mapRef.current || !window.kakao?.maps) return
-      const rect = container.getBoundingClientRect()
-      const point = new window.kakao.maps.Point(e.clientX - rect.left, e.clientY - rect.top)
-      const latLng = mapRef.current.getProjection().fromContainerPixelToCoords(point)
-      fireClick(latLng.getLat(), latLng.getLng())
+      try {
+        const rect = container.getBoundingClientRect()
+        const px = e.clientX - rect.left
+        const py = e.clientY - rect.top
+        console.log('[MapClick] DOM capture fired at px=', px, 'py=', py)
+        const point = new window.kakao.maps.Point(px, py)
+        const proj = mapRef.current.getProjection()
+        const latLng = proj.fromContainerPixelToCoords(point)
+        console.log('[MapClick] coords lat=', latLng.getLat(), 'lng=', latLng.getLng())
+        fireClick(latLng.getLat(), latLng.getLng())
+      } catch (err) {
+        console.error('[MapClick] coord conversion failed:', err)
+      }
     }
     container.addEventListener('click', domClickHandler, true)
 
