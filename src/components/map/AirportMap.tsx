@@ -152,24 +152,46 @@ function useMapInstance(
     }
   }, [clickedPlace, clickPinRef])
 
-  // DOM click → Kakao projection으로 lat/lng 변환 → 핀 + 콜백
-  // Kakao SDK click 이벤트는 타일 POI 클릭 시 발화하지 않으므로 DOM 레벨 사용
+  // 클릭 처리:
+  // 1) Kakao SDK 'click' → 빈 맵 영역 클릭 시 정확한 좌표 제공
+  // 2) DOM capture 'click' → Kakao가 내부 처리하는 POI 타일 클릭도 잡음
+  // 두 이벤트가 동시에 발화하지 않도록 200ms 내 중복 제거
   useEffect(() => {
     if (!mapLoaded || !containerRef.current || !mapRef.current || !window.kakao?.maps || !onMapClick) return
     const container = containerRef.current
-    const handler = (e: MouseEvent) => {
+    const map = mapRef.current
+    const kakao = window.kakao
+    let lastFiredAt = 0
+
+    const fireClick = (lat: number, lng: number) => {
+      const now = Date.now()
+      if (now - lastFiredAt < 200) return
+      lastFiredAt = now
+      if (clickPinRef.current) { clickPinRef.current.setMap(null); clickPinRef.current = null }
+      clickPinRef.current = placeClickPin(map, lat, lng)
+      onMapClick(lat, lng)
+    }
+
+    // Kakao SDK click: 빈 지도 영역 클릭 시 발화 (좌표 정확)
+    const kakaoClickHandler = (mouseEvent: any) => {
+      fireClick(mouseEvent.latLng.getLat(), mouseEvent.latLng.getLng())
+    }
+    kakao.maps.event.addListener(map, 'click', kakaoClickHandler)
+
+    // DOM capture: Kakao가 가로채는 POI 타일 클릭도 캡처 (capturing phase)
+    const domClickHandler = (e: MouseEvent) => {
       if (!mapRef.current || !window.kakao?.maps) return
       const rect = container.getBoundingClientRect()
       const point = new window.kakao.maps.Point(e.clientX - rect.left, e.clientY - rect.top)
       const latLng = mapRef.current.getProjection().fromContainerPixelToCoords(point)
-      const lat: number = latLng.getLat()
-      const lng: number = latLng.getLng()
-      if (clickPinRef.current) { clickPinRef.current.setMap(null); clickPinRef.current = null }
-      clickPinRef.current = placeClickPin(mapRef.current, lat, lng)
-      onMapClick(lat, lng)
+      fireClick(latLng.getLat(), latLng.getLng())
     }
-    container.addEventListener('click', handler)
-    return () => container.removeEventListener('click', handler)
+    container.addEventListener('click', domClickHandler, true)
+
+    return () => {
+      kakao.maps.event.removeListener(map, 'click', kakaoClickHandler)
+      container.removeEventListener('click', domClickHandler, true)
+    }
   }, [mapLoaded, onMapClick, mapRef, containerRef, clickPinRef])
 }
 
