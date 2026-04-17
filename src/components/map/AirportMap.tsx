@@ -62,7 +62,8 @@ export default function AirportMap({
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* Naver Maps SDK가 position을 재설정해도 width/height는 유지되도록 인라인 스타일 명시 */}
+      <div ref={containerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
 
       <MapCategoryChips
         selected={selectedCategory}

@@ -27,18 +27,30 @@ export function useMapInstance(options: Options) {
 
   const { mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick } = options
 
-  // 지도 초기화
+  // 지도 초기화 — rAF 후 실행해 컨테이너 레이아웃이 완료된 시점을 보장
   useEffect(() => {
     if (!mapLoaded || !containerRef.current || mapRef.current || !window.naver?.maps) return
-    mapRef.current = buildMap(containerRef.current)
-    markersRef.current = placeTerminalMarkers(mapRef.current)
+    const container = containerRef.current
+    const rafId = requestAnimationFrame(() => {
+      if (mapRef.current || !container) return
+      mapRef.current = buildMap(container)
+      markersRef.current = placeTerminalMarkers(mapRef.current)
+      // 초기화 직후 즉시 resize → 타일 요청 유도
+      window.naver.maps.Event.trigger(mapRef.current, 'resize')
+    })
+    return () => cancelAnimationFrame(rafId)
   }, [mapLoaded])
 
-  // 컨테이너 크기 변경 후 리사이즈 트리거 (200ms 여유)
+  // 레이아웃 확정 후 추가 resize (컨테이너 크기가 늦게 결정되는 경우 대비)
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.naver?.maps) return
-    const t = setTimeout(() => window.naver.maps.Event.trigger(mapRef.current, 'resize'), 200)
-    return () => clearTimeout(t)
+    if (!mapLoaded) return
+    const t1 = setTimeout(() => {
+      if (mapRef.current && window.naver?.maps) window.naver.maps.Event.trigger(mapRef.current, 'resize')
+    }, 300)
+    const t2 = setTimeout(() => {
+      if (mapRef.current && window.naver?.maps) window.naver.maps.Event.trigger(mapRef.current, 'resize')
+    }, 800)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [mapLoaded])
 
   // 현재 위치 마커
