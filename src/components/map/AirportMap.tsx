@@ -70,26 +70,50 @@ export default function AirportMap({
         onSelect={(cat, shouldShow) => { onCategoryChange(cat); setShowList(shouldShow) }}
       />
 
+      {/* 오른쪽 FAB 버튼 */}
       <div className="absolute top-14 right-3 z-10 flex flex-col gap-2">
-        <button onClick={onLocate} disabled={locating}
-          className="w-11 h-11 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-lg hover:border-brand-green transition-colors disabled:opacity-50"
-        >{locating ? '⏳' : '📍'}</button>
+        <button
+          onClick={onLocate}
+          disabled={locating}
+          className={`w-11 h-11 bg-white rounded-2xl shadow-lg flex items-center justify-center transition-all duration-150 disabled:opacity-40
+            ${locating ? '' : 'hover:scale-105 active:scale-95 hover:shadow-xl'}`}
+          title="내 위치"
+        >
+          {locating
+            ? <span className="animate-spin text-base">⟳</span>
+            : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-brand-green">
+                <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+                <path d="M12 9a3 3 0 100 6 3 3 0 000-6z" fill="currentColor" stroke="none" opacity=".15"/>
+              </svg>
+          }
+        </button>
 
         {selectedCategory !== 'all' && (
-          <button onClick={() => setShowList(v => !v)}
-            className={`w-11 h-11 rounded-xl shadow-lg border flex items-center justify-center text-lg transition-colors ${showList ? 'bg-brand-green border-brand-green text-white' : 'bg-white border-gray-200 hover:border-brand-green'}`}
-          >☰</button>
+          <button
+            onClick={() => setShowList(v => !v)}
+            className={`w-11 h-11 rounded-2xl shadow-lg flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95 ${
+              showList ? 'bg-brand-green text-white shadow-brand-green/40' : 'bg-white text-brand-muted hover:text-brand-green'
+            }`}
+            title="목록 보기"
+          >
+            <svg width="17" height="13" viewBox="0 0 17 13" fill="currentColor">
+              <rect width="17" height="2" rx="1"/>
+              <rect y="5.5" width="13" height="2" rx="1"/>
+              <rect y="11" width="9" height="2" rx="1"/>
+            </svg>
+          </button>
         )}
       </div>
 
+      {/* 토스트 알림 */}
       {locateSuccess && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-brand-green text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg whitespace-nowrap animate-in fade-in duration-200">
-          📍 내 위치 확인됨
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-brand-black/80 backdrop-blur-sm text-white text-xs font-semibold px-4 py-2 rounded-full shadow-xl whitespace-nowrap animate-in fade-in slide-in-from-top-2 duration-200">
+          <span className="text-brand-green mr-1.5">●</span>내 위치 확인됨
         </div>
       )}
       {locationError && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-red-500 text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg whitespace-nowrap">
-          ⚠️ {locationError}
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-brand-red text-white text-xs font-semibold px-4 py-2 rounded-full shadow-xl whitespace-nowrap">
+          {locationError}
         </div>
       )}
 
