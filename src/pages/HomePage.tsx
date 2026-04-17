@@ -3,7 +3,7 @@ import { useCongestion } from '../hooks/useCongestion'
 import { useFlightContext } from '../context/FlightContext'
 import FlightHeroCard from '../components/home/FlightHeroCard'
 import { CongestionMiniCard, CongestionGrid } from '../components/home/CongestionSection'
-import FacilityGrid from '../components/home/FacilityGrid'
+import HomeFacilitySection from '../components/home/HomeFacilitySection'
 import FlightPreviewList from '../components/home/FlightPreviewList'
 import ChecklistSection from '../components/home/ChecklistSection'
 
@@ -51,7 +51,7 @@ export default function HomePage() {
 
           {!loading && <FlightPreviewList flights={flights} />}
 
-          <FacilityGrid />
+          <HomeFacilitySection />
 
         </div>
       </div>
