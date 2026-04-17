@@ -41,10 +41,10 @@ export default function AirportMap({
   onLocate, locating, locationError,
   facilityPlaces = [], facilityLoading, onFacilitySelect,
 }: AirportMapProps) {
-  const [showList, setShowList] = useState(false)
+  const [showList,      setShowList]      = useState(false)
   const [locateSuccess, setLocateSuccess] = useState(false)
 
-  const { containerRef, clickPinRef, unauthorized } = useMapInstance({
+  const { containerRef, clickPinRef } = useMapInstance({
     mapLoaded, userLocation, highlightedPlace, clickedPlace, onMapClick,
   })
 
@@ -55,25 +55,8 @@ export default function AirportMap({
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [userLocation])
 
+  // auth_error 포함 비준비 상태 → 로딩/에러 화면
   if (!mapLoaded) return <MapLoadingState status={mapStatus} />
-
-  if (unauthorized) return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 p-6 text-center bg-amber-50">
-      <p className="text-3xl">🔐</p>
-      <p className="font-bold text-amber-800">NCP 도메인 인증 실패</p>
-      <div className="bg-white border border-amber-200 rounded-xl p-4 text-left text-sm text-amber-900 space-y-2 max-w-sm">
-        <p className="font-semibold">해결 방법:</p>
-        <ol className="list-decimal list-inside space-y-1 text-xs leading-relaxed">
-          <li>console.ncloud.com 접속</li>
-          <li>Maps 애플리케이션 → 수정</li>
-          <li>Web 서비스 URL에 추가:</li>
-        </ol>
-        <code className="block bg-amber-50 border border-amber-200 rounded px-3 py-2 text-xs font-mono mt-1">
-          http://localhost:5173
-        </code>
-      </div>
-    </div>
-  )
 
   const categoryLabel = CATEGORY_META.find(c => c.id === selectedCategory)?.label ?? ''
 
