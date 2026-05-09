@@ -10,7 +10,7 @@ import type { ForeignerTab } from '../types/foreigner'
 
 export default function ForeignerApp() {
   const [tab, setTab] = useState<ForeignerTab>('home')
-  const { stations, phase, loading, selectFrom, selectTo, selectFromDirect, completeRoute, reset, goBack, directTo } =
+  const { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack, directTo } =
     useForeignerRoute()
 
   function handleGoRoute() { setTab('route') }
@@ -28,18 +28,6 @@ export default function ForeignerApp() {
           stations={stations}
           loading={loading}
           onSelectFrom={selectFrom}
-          onSelectTo={selectTo}
-          onBack={goBack}
-        />
-      )
-    }
-    if (phase.phase === 'pick-from-direct') {
-      return (
-        <StationPickerPage
-          phase={phase}
-          stations={stations}
-          loading={loading}
-          onSelectFrom={selectFromDirect}
           onSelectTo={selectTo}
           onBack={goBack}
         />

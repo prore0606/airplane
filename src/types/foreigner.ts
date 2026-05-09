@@ -38,7 +38,6 @@ export type ForeignerTab = 'home' | 'route' | 'my'
 
 export type RoutePhase =
   | { phase: 'pick-from' }
-  | { phase: 'pick-from-direct'; to: Station }
   | { phase: 'pick-to'; from: Station }
   | { phase: 'roadview'; from: Station; to: Station; route: Route; steps: RouteStep[] }
   | { phase: 'arrival'; from: Station; to: Station; durationMin: number }
