@@ -3,12 +3,18 @@ import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const { signInWithGoogle } = useAuth()
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [appleMsg, setAppleMsg] = useState(false)
 
   async function handle() {
     setLoading(true)
     await signInWithGoogle()
     setLoading(false)
+  }
+
+  function handleApple() {
+    setAppleMsg(true)
+    setTimeout(() => setAppleMsg(false), 2500)
   }
 
   return (
@@ -65,6 +71,22 @@ export default function LoginPage() {
             )}
             Google로 계속하기 · Continue with Google
           </button>
+          <button
+            onClick={handleApple}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-[15px] transition-all active:scale-[0.98]"
+            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', border: '1.5px solid rgba(255,255,255,0.1)' }}
+          >
+            <svg width="18" height="22" viewBox="0 0 814 1000" fill="currentColor">
+              <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.5 135.4-317.3 269-317.3 70.1 0 128.4 46.4 172.5 46.4 42.8 0 109.5-49 192.5-49 30.9 0 111.4 2.6 166.3 99zm-209.3-199.5c31.2-36.9 53.5-88.1 53.5-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.1-71.3z"/>
+            </svg>
+            Apple로 계속하기 · Continue with Apple
+          </button>
+          {appleMsg && (
+            <p className="text-center text-[12px] font-semibold animate-pulse"
+              style={{ color: '#4ade80' }}>
+              🚧 준비 중입니다 · Coming soon
+            </p>
+          )}
         </div>
 
         <p className="text-center text-[11px] text-white/25 leading-relaxed">
