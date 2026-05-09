@@ -34,7 +34,7 @@ export interface RouteStep {
 
 export type Language = 'en' | 'ja' | 'zh'
 export type UserMode = 'korean' | 'foreigner'
-export type ForeignerTab = 'home' | 'route' | 'map' | 'my'
+export type ForeignerTab = 'home' | 'route' | 'my'
 
 export type RoutePhase =
   | { phase: 'pick-from' }

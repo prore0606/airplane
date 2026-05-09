@@ -6,7 +6,6 @@ import StationPickerPage from '../features/foreigner/route/StationPickerPage'
 import RoadviewPage from '../features/foreigner/route/RoadviewPage'
 import ArrivalPage from '../features/foreigner/route/ArrivalPage'
 import ForeignerMyPage from '../features/foreigner/my/ForeignerMyPage'
-import MapPage from './MapPage'
 import type { ForeignerTab } from '../types/foreigner'
 
 export default function ForeignerApp() {
@@ -54,7 +53,6 @@ export default function ForeignerApp() {
       <main className="flex-1 overflow-hidden relative">
         {tab === 'home'  && <ForeignerHomePage onGoRoute={handleGoRoute} />}
         {tab === 'route' && renderRouteTab()}
-        {tab === 'map'   && <MapPage initialCategory="all" />}
         {tab === 'my'    && <ForeignerMyPage />}
       </main>
       <ForeignerBottomTab active={tab} onChange={setTab} />

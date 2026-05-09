@@ -3,7 +3,6 @@ import type { ForeignerTab } from '../../../types/foreigner'
 const TABS: { id: ForeignerTab; icon: string; label: string }[] = [
   { id: 'home',  icon: '🏠', label: 'Home'  },
   { id: 'route', icon: '🚉', label: 'Route' },
-  { id: 'map',   icon: '🗺️', label: 'Map'   },
   { id: 'my',    icon: '👤', label: 'My'    },
 ]
 
