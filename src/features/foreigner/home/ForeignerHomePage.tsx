@@ -3,8 +3,8 @@ import QuickRouteCard from './QuickRouteCard'
 import EmergencyRow from './EmergencyRow'
 
 const QUICK_ROUTES = [
-  { from: 'ICN T1', to: 'Seoul Station', method: 'AREX Express', duration: '52 min', price: '₩9,500' },
-  { from: 'ICN T1', to: 'Hongdae',       method: 'AREX All-stop', duration: '66 min', price: '₩4,250' },
+  { from: 'ICN T1', to: 'Seoul Station', method: 'AREX Express',  duration: '52 min', price: '₩9,500', toCode: 'SEOUL'    },
+  { from: 'ICN T1', to: 'Hongdae',       method: 'AREX All-stop', duration: '66 min', price: '₩4,250', toCode: 'HONGDAE'  },
 ]
 
 const AIRPORT_INFO = [
@@ -14,9 +14,9 @@ const AIRPORT_INFO = [
   { emoji: '💊', label: 'Pharmacy' },
 ]
 
-type Props = { onGoRoute: () => void }
+type Props = { onGoRoute: () => void; onDirectTo: (toCode: string) => void }
 
-export default function ForeignerHomePage({ onGoRoute }: Props) {
+export default function ForeignerHomePage({ onGoRoute, onDirectTo }: Props) {
   const { user } = useAuth()
   const name = user?.user_metadata?.full_name?.split(' ')[0] ?? 'Traveler'
 
@@ -48,7 +48,7 @@ export default function ForeignerHomePage({ onGoRoute }: Props) {
               Get to the City
             </p>
             <div className="space-y-2">
-              {QUICK_ROUTES.map(r => <QuickRouteCard key={r.to} {...r} onPress={onGoRoute} />)}
+              {QUICK_ROUTES.map(r => <QuickRouteCard key={r.to} {...r} onPress={() => onDirectTo(r.toCode)} />)}
             </div>
           </div>
           <div>

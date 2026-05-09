@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getStations, getRoute, getRouteSteps } from '../services/foreignerRouteService'
+import { getStations, getRoute, getRouteSteps, STATIONS } from '../services/foreignerRouteService'
 import type { Station, RoutePhase } from '../types/foreigner'
 
 export function useForeignerRoute() {
@@ -44,5 +44,20 @@ export function useForeignerRoute() {
     if (phase.phase === 'roadview') setPhase({ phase: 'pick-to', from: phase.from })
   }
 
-  return { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack }
+  async function directTo(toStationCode: string) {
+    const from = STATIONS.find(s => s.code === 'ICN_T1')
+    const to   = STATIONS.find(s => s.code === toStationCode)
+    if (!from || !to) return
+    setLoading(true)
+    try {
+      const route = await getRoute(from.id, to.id)
+      if (!route) { setPhase({ phase: 'pick-from' }); return }
+      const steps = await getRouteSteps(route.id)
+      setPhase({ phase: 'roadview', from, to, route, steps })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack, directTo }
 }

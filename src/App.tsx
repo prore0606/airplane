@@ -13,6 +13,7 @@ import MapPage from './pages/MapPage'
 import MyPage from './pages/MyPage'
 import LoginPage from './pages/LoginPage'
 import ModeSelectPage from './pages/ModeSelectPage'
+import LanguageSelectPage from './pages/LanguageSelectPage'
 import ForeignerApp from './pages/ForeignerApp'
 import GateFloatingButton from './components/GateFloatingButton'
 import AirportChatbot from './components/chat/AirportChatbot'
@@ -51,7 +52,7 @@ function KoreanApp() {
 
 function AppRoot() {
   const { user, loading } = useAuth()
-  const { mode } = useUserMode()
+  const { mode, langChosen } = useUserMode()
 
   if (loading) {
     return (
@@ -64,9 +65,10 @@ function AppRoot() {
     )
   }
 
-  if (!user)               return <LoginPage />
-  if (!mode)               return <ModeSelectPage />
-  if (mode === 'foreigner') return <ForeignerApp />
+  if (!user)                               return <LoginPage />
+  if (!mode)                               return <ModeSelectPage />
+  if (mode === 'foreigner' && !langChosen) return <LanguageSelectPage />
+  if (mode === 'foreigner')                return <ForeignerApp />
   return <KoreanApp />
 }
 

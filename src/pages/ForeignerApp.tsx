@@ -10,10 +10,15 @@ import type { ForeignerTab } from '../types/foreigner'
 
 export default function ForeignerApp() {
   const [tab, setTab] = useState<ForeignerTab>('home')
-  const { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack } =
+  const { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack, directTo } =
     useForeignerRoute()
 
   function handleGoRoute() { setTab('route') }
+
+  function handleDirectTo(toCode: string) {
+    directTo(toCode)
+    setTab('route')
+  }
 
   function renderRouteTab() {
     if (phase.phase === 'pick-from' || phase.phase === 'pick-to') {
@@ -49,9 +54,9 @@ export default function ForeignerApp() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-brand-surface overflow-hidden">
+    <div className="flex flex-col h-full bg-brand-surface overflow-hidden">
       <main className="flex-1 overflow-hidden relative">
-        {tab === 'home'  && <ForeignerHomePage onGoRoute={handleGoRoute} />}
+        {tab === 'home'  && <ForeignerHomePage onGoRoute={handleGoRoute} onDirectTo={handleDirectTo} />}
         {tab === 'route' && renderRouteTab()}
         {tab === 'my'    && <ForeignerMyPage />}
       </main>
