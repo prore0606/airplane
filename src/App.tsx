@@ -18,8 +18,7 @@ import GateFloatingButton from './components/GateFloatingButton'
 import AirportChatbot from './components/chat/AirportChatbot'
 import './App.css'
 
-function KoreanAppShell() {
-  const { user, loading } = useAuth()
+function KoreanApp() {
   const [tab, setTab] = useState<TabId>('home')
   const [mapInitCat, setMapInitCat] = useState<FacilityCategory | 'all'>('all')
 
@@ -27,19 +26,6 @@ function KoreanAppShell() {
     setMapInitCat(category)
     setTab('map')
   }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-brand-black gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-brand-green flex items-center justify-center text-3xl animate-pulse">✈️</div>
-        <p className="font-display font-black text-xl text-white tracking-tight">
-          출국<span className="text-brand-green">메이트</span>
-        </p>
-      </div>
-    )
-  }
-
-  if (!user) return <LoginPage />
 
   return (
     <NavigationContext.Provider value={{ goToMap }}>
@@ -63,18 +49,25 @@ function KoreanAppShell() {
   )
 }
 
-function ForeignerShell() {
-  const { user, loading } = useAuth()
-  if (loading) return null
-  if (!user) return <LoginPage />
-  return <ForeignerApp />
-}
-
 function AppRoot() {
+  const { user, loading } = useAuth()
   const { mode } = useUserMode()
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-brand-black gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-brand-green flex items-center justify-center text-3xl animate-pulse">✈️</div>
+        <p className="font-display font-black text-xl text-white tracking-tight">
+          출국<span className="text-brand-green">메이트</span>
+        </p>
+      </div>
+    )
+  }
+
+  if (!user)               return <LoginPage />
   if (!mode)               return <ModeSelectPage />
-  if (mode === 'foreigner') return <ForeignerShell />
-  return <KoreanAppShell />
+  if (mode === 'foreigner') return <ForeignerApp />
+  return <KoreanApp />
 }
 
 export default function App() {
