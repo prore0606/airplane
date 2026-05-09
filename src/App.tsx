@@ -74,7 +74,11 @@ export default function App() {
   return (
     <UserModeProvider>
       <AuthProvider>
-        <AppRoot />
+        <div className="min-h-screen flex justify-center" style={{ background: '#0a0f0b' }}>
+          <div className="w-full max-w-[430px] h-screen relative overflow-hidden flex flex-col">
+            <AppRoot />
+          </div>
+        </div>
       </AuthProvider>
     </UserModeProvider>
   )
