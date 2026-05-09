@@ -33,12 +33,20 @@ export default function ArrivalPage({ toName, durationMin, onPickNew }: Props) {
 
       {/* Actions */}
       <div className="px-5 py-5 space-y-2 shrink-0">
-        <button
-          onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(toName)}`, '_blank', 'noopener')}
-          className="w-full py-4 rounded-2xl bg-brand-green text-white font-bold text-[14px] shadow-lg shadow-brand-green/25 active:scale-[0.98] transition-all"
-        >
-          📍 Open in Naver Map
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(toName)}`, '_blank', 'noopener')}
+            className="flex-1 py-4 rounded-2xl bg-brand-green text-white font-bold text-[13px] shadow-lg shadow-brand-green/25 active:scale-[0.98] transition-all"
+          >
+            🗺 Naver Map
+          </button>
+          <button
+            onClick={() => window.open(`https://www.google.com/maps/search/${encodeURIComponent(toName)}`, '_blank', 'noopener')}
+            className="flex-1 py-4 rounded-2xl bg-white border border-brand-border text-brand-black font-bold text-[13px] shadow-sm active:scale-[0.98] transition-all"
+          >
+            📍 Google Maps
+          </button>
+        </div>
         <button
           onClick={onPickNew}
           className="w-full py-4 rounded-2xl border border-brand-border text-brand-ink font-bold text-[14px] bg-white active:scale-[0.98] transition-all"
