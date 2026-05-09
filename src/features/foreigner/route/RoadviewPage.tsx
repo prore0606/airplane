@@ -2,7 +2,6 @@ import { useRoadviewState } from '../../../hooks/useRoadviewState'
 import { useUserMode } from '../../../context/UserModeContext'
 import RoadviewPhoto from './RoadviewPhoto'
 import RoadviewControls from './RoadviewControls'
-import RoadviewSOS from './RoadviewSOS'
 import PhotoFilmstrip from './PhotoFilmstrip'
 import type { RouteStep } from '../../../types/foreigner'
 
@@ -19,7 +18,7 @@ export default function RoadviewPage({ steps, onComplete }: Props) {
   if (!currentStep) return null
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div className="flex flex-col h-full bg-black overflow-hidden">
       <RoadviewPhoto
         step={currentStep}
         stepNum={currentStep.step_number}
@@ -27,6 +26,7 @@ export default function RoadviewPage({ steps, onComplete }: Props) {
       />
       <RoadviewControls
         step={currentStep}
+        total={total}
         progress={progress}
         isFirst={isFirst}
         isLast={isLast}
@@ -35,7 +35,6 @@ export default function RoadviewPage({ steps, onComplete }: Props) {
         onPrev={goPrev}
         onDone={onComplete}
       />
-      <RoadviewSOS />
       <PhotoFilmstrip
         steps={steps}
         currentIndex={index}

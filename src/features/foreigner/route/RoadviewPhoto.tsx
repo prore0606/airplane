@@ -17,7 +17,7 @@ export default function RoadviewPhoto({ step, stepNum, total }: Props) {
   const bg = GRADIENTS[(stepNum - 1) % GRADIENTS.length]
 
   return (
-    <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 300 }}>
+    <div className="relative flex-1 overflow-hidden">
       {step.photo_url ? (
         <img src={step.photo_url} alt="" className="w-full h-full object-cover" />
       ) : (
@@ -34,15 +34,14 @@ export default function RoadviewPhoto({ step, stepNum, total }: Props) {
         {String(stepNum).padStart(2, '0')} / {String(total).padStart(2, '0')}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5">
-        <div className="w-16 h-16 rounded-full bg-brand-green border-[3px] border-white flex items-center justify-center text-white text-3xl font-bold shadow-2xl shadow-brand-green/50">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">
+        <div className="w-20 h-20 rounded-full bg-brand-green border-4 border-white flex items-center justify-center text-white text-4xl font-bold shadow-2xl shadow-brand-green/60">
           {step.direction}
         </div>
-        {step.distance_m && (
-          <div className="bg-black/70 text-white text-[11px] font-bold px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-            ~{step.distance_m}m
-          </div>
-        )}
+        <div className="bg-black/75 text-white text-[13px] font-bold px-4 py-1.5 rounded-full backdrop-blur-sm">
+          {step.instruction_en}
+          {step.distance_m ? ` · ${step.distance_m}m` : ''}
+        </div>
       </div>
     </div>
   )

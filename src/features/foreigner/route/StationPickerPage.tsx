@@ -2,7 +2,7 @@ import StationGrid from './StationGrid'
 import type { Station, RoutePhase } from '../../../types/foreigner'
 
 type Props = {
-  phase: Extract<RoutePhase, { phase: 'pick-from' | 'pick-to' }>
+  phase: Extract<RoutePhase, { phase: 'pick-from' | 'pick-from-direct' | 'pick-to' }>
   stations: Station[]
   loading: boolean
   onSelectFrom: (s: Station) => void
@@ -13,13 +13,26 @@ type Props = {
 export default function StationPickerPage({
   phase, stations, loading, onSelectFrom, onSelectTo, onBack,
 }: Props) {
-  const isPickTo = phase.phase === 'pick-to'
+  const isPickTo     = phase.phase === 'pick-to'
+  const isDirectFrom = phase.phase === 'pick-from-direct'
+
+  const title    = isPickTo ? 'Where to?' : 'Where are\nyou now?'
+  const subtitle = isPickTo && phase.phase === 'pick-to'
+    ? `From: ${phase.from.name_en}`
+    : isDirectFrom && phase.phase === 'pick-from-direct'
+      ? `Going to: ${phase.to.name_en}`
+      : 'Pick your starting station'
+
+  function handleSelect(s: Station) {
+    if (isPickTo)     return onSelectTo(s)
+    if (isDirectFrom) return onSelectFrom(s)
+    return onSelectFrom(s)
+  }
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Clean header */}
       <div className="px-6 pt-12 pb-5 shrink-0">
-        {isPickTo && (
+        {(isPickTo || isDirectFrom) && (
           <button onClick={onBack}
             className="mb-5 w-9 h-9 rounded-xl bg-brand-surface flex items-center justify-center">
             <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
@@ -27,14 +40,10 @@ export default function StationPickerPage({
             </svg>
           </button>
         )}
-        <h1 className="font-display font-black text-[28px] text-brand-black leading-tight">
-          {isPickTo ? 'Where to?' : 'Where are\nyou now?'}
+        <h1 className="font-display font-black text-[28px] text-brand-black leading-tight whitespace-pre-line">
+          {title}
         </h1>
-        <p className="text-brand-muted text-[14px] mt-2">
-          {isPickTo && phase.phase === 'pick-to'
-            ? `From: ${phase.from.name_en}`
-            : 'Pick your starting station'}
-        </p>
+        <p className="text-brand-muted text-[14px] mt-2">{subtitle}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-6">
@@ -46,7 +55,7 @@ export default function StationPickerPage({
           <StationGrid
             stations={stations}
             exclude={isPickTo && phase.phase === 'pick-to' ? phase.from.id : undefined}
-            onSelect={isPickTo ? onSelectTo : onSelectFrom}
+            onSelect={handleSelect}
             highlightFirst={!isPickTo}
           />
         )}

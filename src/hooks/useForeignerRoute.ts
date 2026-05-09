@@ -39,15 +39,15 @@ export function useForeignerRoute() {
     setPhase({ phase: 'pick-from' })
   }
 
-  function goBack() {
-    if (phase.phase === 'pick-to') setPhase({ phase: 'pick-from' })
-    if (phase.phase === 'roadview') setPhase({ phase: 'pick-to', from: phase.from })
+  function directTo(toStationCode: string) {
+    const to = STATIONS.find(s => s.code === toStationCode)
+    if (!to) return
+    setPhase({ phase: 'pick-from-direct', to })
   }
 
-  async function directTo(toStationCode: string) {
-    const from = STATIONS.find(s => s.code === 'ICN_T1')
-    const to   = STATIONS.find(s => s.code === toStationCode)
-    if (!from || !to) return
+  async function selectFromDirect(from: Station) {
+    if (phase.phase !== 'pick-from-direct') return
+    const { to } = phase
     setLoading(true)
     try {
       const route = await getRoute(from.id, to.id)
@@ -59,5 +59,11 @@ export function useForeignerRoute() {
     }
   }
 
-  return { stations, phase, loading, selectFrom, selectTo, completeRoute, reset, goBack, directTo }
+  function goBack() {
+    if (phase.phase === 'pick-to')           setPhase({ phase: 'pick-from' })
+    if (phase.phase === 'pick-from-direct')  setPhase({ phase: 'pick-from' })
+    if (phase.phase === 'roadview')          setPhase({ phase: 'pick-to', from: phase.from })
+  }
+
+  return { stations, phase, loading, selectFrom, selectTo, selectFromDirect, completeRoute, reset, goBack, directTo }
 }
