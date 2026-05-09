@@ -13,7 +13,6 @@ import MapPage from './pages/MapPage'
 import MyPage from './pages/MyPage'
 import LoginPage from './pages/LoginPage'
 import ModeSelectPage from './pages/ModeSelectPage'
-import ForeignerLoginPage from './pages/ForeignerLoginPage'
 import ForeignerApp from './pages/ForeignerApp'
 import GateFloatingButton from './components/GateFloatingButton'
 import AirportChatbot from './components/chat/AirportChatbot'
@@ -67,7 +66,7 @@ function KoreanAppShell() {
 function ForeignerShell() {
   const { user, loading } = useAuth()
   if (loading) return null
-  if (!user) return <ForeignerLoginPage />
+  if (!user) return <LoginPage />
   return <ForeignerApp />
 }
 
