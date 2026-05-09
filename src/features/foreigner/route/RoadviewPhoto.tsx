@@ -30,8 +30,15 @@ export default function RoadviewPhoto({ step, stepNum, total }: Props) {
         📍 {step.location_stamp}
       </div>
 
-      <div className="absolute top-4 right-4 bg-brand-green text-white text-[11px] font-black px-3 py-1.5 rounded-lg shadow-lg shadow-brand-green/40">
-        {String(stepNum).padStart(2, '0')} / {String(total).padStart(2, '0')}
+      <div className="absolute top-4 right-4 flex items-center gap-1.5">
+        {step.photo_url?.startsWith('/img2/') && (
+          <span className="bg-black/60 backdrop-blur-sm text-white/70 text-[9px] font-bold px-2 py-1 rounded-md border border-white/10 tracking-wider">
+            예시화면
+          </span>
+        )}
+        <span className="bg-brand-green text-white text-[11px] font-black px-3 py-1.5 rounded-lg shadow-lg shadow-brand-green/40">
+          {String(stepNum).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
       </div>
 
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 pointer-events-none">

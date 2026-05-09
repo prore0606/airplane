@@ -10,21 +10,28 @@ function makeDemoRoute(fromId: string, toId: string): Route {
     transport_method: 'AREX',
     duration_min: 52,
     price_krw: 9500,
-    total_steps: 6,
+    total_steps: 5,
     is_active: true,
   }
 }
 
+const DEMO_PHOTOS = [
+  '/img2/KakaoTalk_20260508_141355580.jpg',
+  '/img2/KakaoTalk_20260508_141355580_01.jpg',
+  '/img2/KakaoTalk_20260508_141355580_02.jpg',
+  '/img2/KakaoTalk_20260508_141355580_03.jpg',
+  '/img2/KakaoTalk_20260508_141355580_04.jpg',
+]
+
 function makeDemoSteps(from: Station, to: Station, routeId: string): RouteStep[] {
-  const fromLabel = from.name_en.toUpperCase().replace(/ /g, ' ')
-  const toLabel   = to.name_en.toUpperCase().replace(/ /g, ' ')
+  const fromLabel = from.name_en.toUpperCase()
+  const toLabel   = to.name_en.toUpperCase()
   return [
-    { id: 'd1', route_id: routeId, step_number: 1, location_stamp: `${fromLabel} · ARRIVAL HALL`,   direction: '↑', instruction_en: 'Walk forward toward the train signs',           instruction_ja: '電車の標識に向かって前進してください',   instruction_zh: '向火车指示牌方向前进',      photo_url: null, distance_m: 50   },
-    { id: 'd2', route_id: routeId, step_number: 2, location_stamp: `${fromLabel} · B1 CONCOURSE`,   direction: '↓', instruction_en: 'Take escalator down to AREX platform',          instruction_ja: 'エスカレーターでARexホームへ',           instruction_zh: '乘扶梯下至AREX站台',        photo_url: null, distance_m: null },
-    { id: 'd3', route_id: routeId, step_number: 3, location_stamp: `${fromLabel} · AREX TICKET`,    direction: '→', instruction_en: 'Buy ticket at the kiosk on your right',         instruction_ja: '右側の券売機で乗車券を購入',             instruction_zh: '在右侧自动售票机购票',      photo_url: null, distance_m: 20   },
-    { id: 'd4', route_id: routeId, step_number: 4, location_stamp: `${fromLabel} · AREX PLATFORM`,  direction: '↑', instruction_en: 'Board AREX train — platform straight ahead',    instruction_ja: 'ARexに乗車 — ホームは正面',             instruction_zh: '乘坐AREX列车 — 站台在前方', photo_url: null, distance_m: 30   },
-    { id: 'd5', route_id: routeId, step_number: 5, location_stamp: `${toLabel} · AREX ARRIVAL`,     direction: '↑', instruction_en: 'Exit the train and follow signs to the exit',   instruction_ja: '下車して出口の標識に従ってください',      instruction_zh: '下车后跟随出口指示牌',      photo_url: null, distance_m: null },
-    { id: 'd6', route_id: routeId, step_number: 6, location_stamp: `${toLabel} · STREET EXIT`,      direction: '✓', instruction_en: `You've arrived at ${to.name_en}!`,              instruction_ja: `${to.name_en}に到着しました！`,          instruction_zh: `您已到达${to.name_en}！`,   photo_url: null, distance_m: null },
+    { id: 'd1', route_id: routeId, step_number: 1, location_stamp: `${fromLabel} · ARRIVAL HALL`,  direction: '↑', instruction_en: 'Walk forward toward the train signs',          instruction_ja: '電車の標識に向かって前進してください',  instruction_zh: '向火车指示牌方向前进',      photo_url: DEMO_PHOTOS[0], distance_m: 50   },
+    { id: 'd2', route_id: routeId, step_number: 2, location_stamp: `${fromLabel} · B1 CONCOURSE`,  direction: '↓', instruction_en: 'Take escalator down to AREX platform',         instruction_ja: 'エスカレーターでARexホームへ',          instruction_zh: '乘扶梯下至AREX站台',        photo_url: DEMO_PHOTOS[1], distance_m: null },
+    { id: 'd3', route_id: routeId, step_number: 3, location_stamp: `${fromLabel} · AREX TICKET`,   direction: '→', instruction_en: 'Buy ticket at the kiosk on your right',        instruction_ja: '右側の券売機で乗車券を購入',            instruction_zh: '在右侧自动售票机购票',      photo_url: DEMO_PHOTOS[2], distance_m: 20   },
+    { id: 'd4', route_id: routeId, step_number: 4, location_stamp: `${fromLabel} · AREX PLATFORM`, direction: '↑', instruction_en: 'Board AREX train — platform straight ahead',   instruction_ja: 'ARexに乗車 — ホームは正面',            instruction_zh: '乘坐AREX列车 — 站台在前方', photo_url: DEMO_PHOTOS[3], distance_m: 30   },
+    { id: 'd5', route_id: routeId, step_number: 5, location_stamp: `${toLabel} · STREET EXIT`,     direction: '✓', instruction_en: `You've arrived at ${to.name_en}!`,             instruction_ja: `${to.name_en}に到着しました！`,         instruction_zh: `您已到达${to.name_en}！`,   photo_url: DEMO_PHOTOS[4], distance_m: null },
   ]
 }
 
